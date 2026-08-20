@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <PackageId>Athenex.Whimclean.Domain</PackageId>
+    <Version>0.0.1</Version>
+    <Authors>Athenex</Authors>
+    <Company>Athenex</Company>
+    <Copyright>Copyright © Athenex 2026</Copyright>
+    <Product>Athenex Whimclean Domain</Product>
+    <Title>Athenex Whimclean Domain</Title>
+    <Description>Domain-driven design abstractions for entities, aggregate roots, domain events, auditing, multitenancy, soft deletion, and operation results.</Description>
+    <PackageTags>ddd;domain-driven-design;aggregate-root;domain-events;auditing;multitenancy;result</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://github.com/athene-x/Whimclean</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/athene-x/Whimclean.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageOutputPath>../artifacts</PackageOutputPath>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

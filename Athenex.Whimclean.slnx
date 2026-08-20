@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Athenex.Whimclean.Application/Athenex.Whimclean.Application.csproj" />
+  <Project Path="Athenex.Whimclean.Application.Tests/Athenex.Whimclean.Application.Tests.csproj" />
+  <Project Path="Athenex.Whimclean.Domain/Athenex.Whimclean.Domain.csproj" />
+  <Project Path="Athenex.Whimclean.Domain.Tests/Athenex.Whimclean.Domain.Tests.csproj" />
+</Solution>
