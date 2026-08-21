@@ -1,0 +1,53 @@
+using Athenex.Whimclean.Application.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Tests;
+
+public sealed class DependencyInjectionTests
+{
+    [Fact]
+    public void AddEntityFrameworkCoreContext_RegistersContextWithoutUnitOfWork()
+    {
+        var services = new ServiceCollection();
+        services.AddEntityFrameworkCoreContext<PlainDbContext>((_, options) =>
+            options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+
+        using var serviceProvider = services.BuildServiceProvider();
+        using var scope = serviceProvider.CreateScope();
+
+        var context = scope.ServiceProvider.GetRequiredService<PlainDbContext>();
+
+        Assert.NotNull(context);
+        Assert.Null(scope.ServiceProvider.GetService<IUnitOfWork>());
+    }
+
+    [Fact]
+    public void AddEntityFrameworkCoreDbContext_RegistersContextAndUnitOfWork()
+    {
+        var services = new ServiceCollection();
+        services.AddEntityFrameworkCoreDbContext<TestDbContext>((_, options) =>
+            options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+
+        using var serviceProvider = services.BuildServiceProvider();
+        using var scope = serviceProvider.CreateScope();
+
+        var context = scope.ServiceProvider.GetRequiredService<TestDbContext>();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        Assert.Same(context, unitOfWork);
+    }
+
+    private sealed class TestDbContext(
+        DbContextOptions<TestDbContext> options)
+        : DbContext(options), IUnitOfWork
+    {
+        public Task CommitAsync(
+            CancellationToken cancellationToken = default) =>
+            SaveChangesAsync(cancellationToken);
+    }
+
+    private sealed class PlainDbContext(
+        DbContextOptions<PlainDbContext> options)
+        : DbContext(options);
+}

@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Athenex.Whimclean.Application.Context;
+namespace Athenex.Whimclean.Multitenancy;
 
-public interface ICurrentTenant<TTenantId>
+public interface IRequestedTenant<TTenantId>
     where TTenantId : notnull
 {
     bool TryGetTenantId(

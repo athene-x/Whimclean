@@ -6,16 +6,16 @@
     <Nullable>enable</Nullable>
 
     <PackageId>Athenex.Whimclean.Application</PackageId>
-    <Version>0.0.1</Version>
+    <Version>0.1.0</Version>
     <Authors>Athenex</Authors>
     <Company>Athenex</Company>
     <Copyright>Copyright © Athenex 2026</Copyright>
     <Product>Athenex Whimclean Application</Product>
     <Title>Athenex Whimclean Application</Title>
     <Description>Application-layer abstractions for request context, email, pagination, persistence, and validated list queries.</Description>
-    <PackageTags>application-layer;clean-architecture;email;pagination;queries;unit-of-work;multitenancy</PackageTags>
+    <PackageTags>application-layer;clean-architecture;email;pagination;queries;unit-of-work</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    <PackageReleaseNotes>Moves tenant context contracts to the optional multitenancy package and adds the required-current-user boundary exception.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageProjectUrl>https://github.com/athene-x/Whimclean</PackageProjectUrl>
     <RepositoryUrl>https://github.com/athene-x/Whimclean.git</RepositoryUrl>
@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="../README.md" Pack="true" PackagePath="/" />
+    <None Update="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

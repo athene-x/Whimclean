@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <PackageId>Athenex.Whimclean.Api.FastEndpoints.Multitenancy</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Athenex</Authors>
+    <Company>Athenex</Company>
+    <Copyright>Copyright © Athenex 2026</Copyright>
+    <Product>Athenex Whimclean FastEndpoints Multitenancy</Product>
+    <Title>Athenex Whimclean FastEndpoints Multitenancy</Title>
+    <Description>Optional FastEndpoints multitenancy integration with ASP.NET Core requested-tenant resolution, membership authorization, authorized tenant context, and API error mapping.</Description>
+    <PackageTags>fastendpoints;aspnetcore;multitenancy;tenant;authorization;middleware</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Adds requested-tenant resolution, membership authorization, authorized tenant context, and FastEndpoints tenant error mapping.</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://github.com/athene-x/Whimclean</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/athene-x/Whimclean.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageOutputPath>../artifacts</PackageOutputPath>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Api.FastEndpoints/Athenex.Whimclean.Api.FastEndpoints.csproj" />
+    <ProjectReference Include="../Athenex.Whimclean.Multitenancy.Abstractions/Athenex.Whimclean.Multitenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

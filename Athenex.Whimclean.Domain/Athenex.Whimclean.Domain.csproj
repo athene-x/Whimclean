@@ -6,16 +6,16 @@
     <Nullable>enable</Nullable>
 
     <PackageId>Athenex.Whimclean.Domain</PackageId>
-    <Version>0.0.1</Version>
+    <Version>0.1.0</Version>
     <Authors>Athenex</Authors>
     <Company>Athenex</Company>
     <Copyright>Copyright © Athenex 2026</Copyright>
     <Product>Athenex Whimclean Domain</Product>
     <Title>Athenex Whimclean Domain</Title>
-    <Description>Domain-driven design abstractions for entities, aggregate roots, domain events, auditing, multitenancy, soft deletion, and operation results.</Description>
-    <PackageTags>ddd;domain-driven-design;aggregate-root;domain-events;auditing;multitenancy;result</PackageTags>
+    <Description>Domain-driven design abstractions for entities, aggregate roots, domain events, auditing, soft deletion, and operation results.</Description>
+    <PackageTags>ddd;domain-driven-design;aggregate-root;domain-events;auditing;result</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    <PackageReleaseNotes>Moves multitenancy contracts to the optional Multitenancy.Abstractions package while retaining the focused domain building blocks.</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageProjectUrl>https://github.com/athene-x/Whimclean</PackageProjectUrl>
     <RepositoryUrl>https://github.com/athene-x/Whimclean.git</RepositoryUrl>
@@ -29,7 +29,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="../README.md" Pack="true" PackagePath="/" />
+    <None Update="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <PackageId>Athenex.Whimclean.Multitenancy.Abstractions</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Athenex</Authors>
+    <Company>Athenex</Company>
+    <Copyright>Copyright © Athenex 2026</Copyright>
+    <Product>Athenex Whimclean Multitenancy Abstractions</Product>
+    <Title>Athenex Whimclean Multitenancy Abstractions</Title>
+    <Description>Dependency-free multitenancy contracts for tenant-owned models, requested and authorized tenant context, and tenant access validation.</Description>
+    <PackageTags>multitenancy;tenant;abstractions;clean-architecture</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Adds dependency-free requested/current tenant, tenant ownership, access validation, and boundary exception contracts.</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://github.com/athene-x/Whimclean</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/athene-x/Whimclean.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageOutputPath>../artifacts</PackageOutputPath>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

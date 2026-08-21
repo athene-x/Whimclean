@@ -1,4 +1,4 @@
-namespace Athenex.Whimclean.Domain.Multitenancy;
+namespace Athenex.Whimclean.Multitenancy;
 
 /// <summary>
 /// Identifies a domain object that is owned by a tenant.
