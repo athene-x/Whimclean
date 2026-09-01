@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean Entity Framework Core</Product>
+    <Title>Athenex Whimclean Entity Framework Core</Title>
+    <Description>Provider-neutral EF Core infrastructure for Whimclean applications, including required current-user writes, auditing, soft deletion, concurrency handling, unit-of-work registration, and domain-event dispatch.</Description>
+    <PackageTags>entity-framework-core;unit-of-work;auditing;current-user;soft-delete;concurrency;domain-events</PackageTags>
+    <PackageReleaseNotes>Adds provider-neutral EF Core auditing, soft-delete filtering, concurrency translation, domain-event dispatch, and unit-of-work registration.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Application/Athenex.Whimclean.Application.csproj" />
+    <ProjectReference Include="../Athenex.Whimclean.Infrastructure/Athenex.Whimclean.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

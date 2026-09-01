@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean Entity Framework Core PostgreSQL</Product>
+    <Title>Athenex Whimclean Entity Framework Core PostgreSQL</Title>
+    <Description>PostgreSQL provider integration for Whimclean EF Core infrastructure, including Npgsql configuration and DbContext registration.</Description>
+    <PackageTags>entity-framework-core;postgresql;npgsql;dependency-injection</PackageTags>
+    <PackageReleaseNotes>Adds PostgreSQL and Npgsql registration for ordinary and unit-of-work EF Core contexts.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Infrastructure.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,20 +1,31 @@
 <Solution>
-  <Project Path="Athenex.Whimclean.Application/Athenex.Whimclean.Application.csproj" />
-  <Project Path="Athenex.Whimclean.Application.Tests/Athenex.Whimclean.Application.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Api.FastEndpoints/Athenex.Whimclean.Api.FastEndpoints.csproj" />
-  <Project Path="Athenex.Whimclean.Api.FastEndpoints.Tests/Athenex.Whimclean.Api.FastEndpoints.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Api.FastEndpoints.Multitenancy/Athenex.Whimclean.Api.FastEndpoints.Multitenancy.csproj" />
-  <Project Path="Athenex.Whimclean.Api.FastEndpoints.Multitenancy.Tests/Athenex.Whimclean.Api.FastEndpoints.Multitenancy.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Domain/Athenex.Whimclean.Domain.csproj" />
-  <Project Path="Athenex.Whimclean.Domain.Tests/Athenex.Whimclean.Domain.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.Tests/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure/Athenex.Whimclean.Infrastructure.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.csproj" />
-  <Project Path="Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests.csproj" />
-  <Project Path="Athenex.Whimclean.Multitenancy.Abstractions/Athenex.Whimclean.Multitenancy.Abstractions.csproj" />
+  <Folder Name="/foundation/">
+    <Project Path="src/Athenex.Whimclean.Domain/Athenex.Whimclean.Domain.csproj" />
+    <Project Path="src/Athenex.Whimclean.Application/Athenex.Whimclean.Application.csproj" />
+    <Project Path="src/Athenex.Whimclean.Multitenancy.Abstractions/Athenex.Whimclean.Multitenancy.Abstractions.csproj" />
+    <Project Path="src/Athenex.Whimclean.Infrastructure/Athenex.Whimclean.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/extensions/persistence/">
+    <Project Path="src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.csproj" />
+    <Project Path="src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.csproj" />
+    <Project Path="src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.csproj" />
+    <Project Path="src/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/extensions/api/">
+    <Project Path="src/Athenex.Whimclean.Api.AspNetCore/Athenex.Whimclean.Api.AspNetCore.csproj" />
+    <Project Path="src/Athenex.Whimclean.Api.AspNetCore.Multitenancy/Athenex.Whimclean.Api.AspNetCore.Multitenancy.csproj" />
+    <Project Path="src/Athenex.Whimclean.Api.FastEndpoints/Athenex.Whimclean.Api.FastEndpoints.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Athenex.Whimclean.Domain.Tests/Athenex.Whimclean.Domain.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Application.Tests/Athenex.Whimclean.Application.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Infrastructure.Tests/Athenex.Whimclean.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.Tests/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Tests/Athenex.Whimclean.Api.AspNetCore.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Api.FastEndpoints.Tests/Athenex.Whimclean.Api.FastEndpoints.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean Entity Framework Core Multitenancy</Product>
+    <Title>Athenex Whimclean Entity Framework Core Multitenancy</Title>
+    <Description>Optional provider-neutral EF Core multitenancy enforcement with fail-closed query filters and write validation.</Description>
+    <PackageTags>entity-framework-core;multitenancy;tenant;query-filter;data-isolation</PackageTags>
+    <PackageReleaseNotes>Adds optional provider-neutral EF Core tenant query filtering and fail-closed write validation.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Infrastructure.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Athenex.Whimclean.Multitenancy.Abstractions/Athenex.Whimclean.Multitenancy.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

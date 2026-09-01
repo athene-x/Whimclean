@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean Infrastructure</Product>
+    <Title>Athenex Whimclean Infrastructure</Title>
+    <Description>Provider-neutral infrastructure building blocks for Whimclean applications, including audit actor resolution and asynchronous domain-event dispatch.</Description>
+    <PackageTags>infrastructure;clean-architecture;auditing;domain-events</PackageTags>
+    <PackageReleaseNotes>Adds provider-neutral audit actor resolution and asynchronous domain-event dispatch contracts.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Domain/Athenex.Whimclean.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

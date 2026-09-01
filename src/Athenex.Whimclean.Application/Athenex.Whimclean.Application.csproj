@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean Application</Product>
+    <Title>Athenex Whimclean Application</Title>
+    <Description>Application-layer abstractions for request context, email, pagination, persistence, and validated list queries.</Description>
+    <PackageTags>application-layer;clean-architecture;email;pagination;queries;unit-of-work</PackageTags>
+    <PackageReleaseNotes>Moves tenant context contracts to the optional multitenancy package and adds the required-current-user boundary exception.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Domain/Athenex.Whimclean.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

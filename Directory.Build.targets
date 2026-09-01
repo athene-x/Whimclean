@@ -1,0 +1,7 @@
+<Project>
+
+  <ItemGroup Condition="'$(IsTestProject)' != 'true' and Exists('$(MSBuildProjectDirectory)/README.md')">
+    <None Update="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

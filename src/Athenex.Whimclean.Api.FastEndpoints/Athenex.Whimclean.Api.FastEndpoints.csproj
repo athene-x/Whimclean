@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean FastEndpoints API</Product>
+    <Title>Athenex Whimclean FastEndpoints API</Title>
+    <Description>FastEndpoints adapter for the Whimclean ASP.NET Core API conventions: endpoint registration, OpenAPI, and validation responses over the shared error contract.</Description>
+    <PackageTags>fastendpoints;api;openapi;validation;exception-handling;result;error-handling</PackageTags>
+    <PackageReleaseNotes>Becomes a thin FastEndpoints adapter; the framework-neutral error handling moved to Athenex.Whimclean.Api.AspNetCore.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FastEndpoints" />
+    <PackageReference Include="FastEndpoints.OpenApi" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Api.AspNetCore/Athenex.Whimclean.Api.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>

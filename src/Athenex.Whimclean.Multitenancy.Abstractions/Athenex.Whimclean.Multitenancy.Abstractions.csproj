@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean Multitenancy Abstractions</Product>
+    <Title>Athenex Whimclean Multitenancy Abstractions</Title>
+    <Description>Dependency-free multitenancy contracts for tenant-owned models, requested and authorized tenant context, and tenant access validation.</Description>
+    <PackageTags>multitenancy;tenant;abstractions;clean-architecture</PackageTags>
+    <PackageReleaseNotes>Adds dependency-free requested/current tenant, tenant ownership, access validation, and boundary exception contracts.</PackageReleaseNotes>
+  </PropertyGroup>
+
+</Project>
