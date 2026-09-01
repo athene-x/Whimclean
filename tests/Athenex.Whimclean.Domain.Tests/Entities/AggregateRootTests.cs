@@ -32,7 +32,8 @@ public sealed class AggregateRootTests
         var aggregate = new TestAggregate(Guid.NewGuid());
         aggregate.Raise(new TestDomainEvent("event"));
 
-        aggregate.ClearDomainEvents();
+        // Reachable only through the interface, mirroring infrastructure.
+        ((IHasDomainEvents)aggregate).ClearDomainEvents();
 
         Assert.Empty(aggregate.DomainEvents);
     }
