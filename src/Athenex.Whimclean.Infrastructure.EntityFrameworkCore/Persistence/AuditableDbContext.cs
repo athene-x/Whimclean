@@ -261,12 +261,7 @@ public abstract class AuditableDbContext<TUserId, TActor>(
             return default!;
         }
 
-        if (!currentUser.TryGetUserId(out var userId))
-        {
-            throw new CurrentUserRequiredException();
-        }
-
-        return userId;
+        return currentUser.GetRequiredUserId();
     }
 
     private void ApplyAuditFields(
