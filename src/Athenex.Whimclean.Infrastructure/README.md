@@ -1,6 +1,6 @@
 # Athenex.Whimclean.Infrastructure
 
-Provider-neutral infrastructure contracts used by the Whimclean EF Core integration.
+Provider-neutral infrastructure building blocks used by the Whimclean EF Core integration: audit actor resolution and the in-process domain-event pipeline.
 
 ## Install
 
@@ -15,32 +15,65 @@ dotnet add package Athenex.Whimclean.Infrastructure
 For a `Guid` user ID stored in nullable `Guid?` audit properties:
 
 ```csharp
-using Athenex.Whimclean.Infrastructure.Auditing;
+using Athenex.Whimclean.Infrastructure;
 
-services.AddSingleton<
-    IAuditActorResolver<Guid, Guid?>,
-    NullableAuditActorResolver<Guid>>();
+services.AddNullableAuditActorResolver<Guid>();
 ```
 
 When the types are identical and non-nullable:
 
 ```csharp
-services.AddSingleton<
-    IAuditActorResolver<Guid, Guid>,
-    IdentityAuditActorResolver<Guid>>();
+services.AddIdentityAuditActorResolver<Guid>();
 ```
 
-Implement the interface yourself when audit actors require mapping to a name, service account, or value object.
+Both helpers use TryAdd semantics. Implement the interface yourself when audit actors require mapping to a name, service account, or value object:
 
-## Domain-event dispatch boundary
+```csharp
+services.AddSingleton<
+    IAuditActorResolver<Guid, ActorStamp>,
+    ActorStampResolver>();
+```
 
-Implement `IDomainEventDispatcher` in the consuming infrastructure layer and bridge it to the chosen mediator or message dispatcher:
+## Domain-event pipeline
+
+The package ships an in-process pipeline: `IDomainEventDispatcher` delivers each committed event to every `IDomainEventHandler<TEvent>` registered for its runtime type. The unit of work invokes the dispatcher after a successful commit, so a handler failure never rolls the persisted changes back.
+
+```csharp
+using Athenex.Whimclean.Infrastructure;
+
+services.AddDomainEventDispatcher();
+services.AddDomainEventHandler<OrderPlaced, SendConfirmationEmail>();
+services.AddDomainEventHandler<OrderPlaced, ReserveStock>();
+```
+
+`AddDomainEventDispatcher` registers `ServiceProviderDomainEventDispatcher` with TryAdd semantics; `AddDomainEventHandler` uses TryAddEnumerable, so several handlers may react to one event while duplicate registrations collapse to one.
+
+```csharp
+public sealed class SendConfirmationEmail(IEmailSender emailSender)
+    : IDomainEventHandler<OrderPlaced>
+{
+    public Task HandleAsync(
+        OrderPlaced domainEvent,
+        CancellationToken cancellationToken = default) =>
+        emailSender.SendOrderConfirmationAsync(
+            domainEvent.OrderId,
+            cancellationToken);
+}
+```
+
+### Dispatch failures
+
+When a handler throws after the commit succeeded, the save surfaces a `DomainEventDispatchException`. The save must not be retried — the data is already persisted; the events that never reached their handlers are on `UndeliveredEvents` (the failing event first, then any never attempted), ready to be handled or replayed.
+
+### Bridging to a mediator
+
+The default dispatcher is replaceable: register your own `IDomainEventDispatcher` (before or instead of `AddDomainEventDispatcher` — TryAdd leaves it in place) to bridge into a mediator or message dispatcher:
 
 ```csharp
 using Athenex.Whimclean.Domain.Events;
 using Athenex.Whimclean.Infrastructure.DomainEvents;
 
-public sealed class DomainEventDispatcher(IMediator mediator)
+public sealed class MediatorDomainEventDispatcher(IMediator mediator)
     : IDomainEventDispatcher
 {
     public Task DispatchAsync(
@@ -51,7 +84,7 @@ public sealed class DomainEventDispatcher(IMediator mediator)
 ```
 
 ```csharp
-services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+services.AddScoped<IDomainEventDispatcher, MediatorDomainEventDispatcher>();
 ```
 
 This package deliberately does not select MediatR, EF Core, a database provider, Identity, or multitenancy.
