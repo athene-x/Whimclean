@@ -249,7 +249,7 @@ EF Core optimistic-concurrency failures are exposed as `PersistenceConcurrencyEx
 
 ### Optional multitenancy
 
-Install the optional EF and API adapters only in tenant-aware applications. The consumer owns its `Tenant` and `TenantMembership` entities, their lifecycle, and the membership query; Whimclean supplies the boundaries that connect those decisions to authorization and EF isolation.
+Install the optional EF and API adapters only in tenant-aware applications. The consumer owns its `Tenant` and `TenantMembership` entities, their lifecycle, and the membership query; Whimclean supplies the boundaries that connect those decisions to authorization and EF isolation. This section covers the shipped logical-isolation model; the [multitenancy setup guide](docs/multitenancy-setup.md) walks through all three isolation models — logical (shared schema), schema per tenant, and database per tenant.
 
 Tenant business contexts derive from `MultiTenantDbContext<TUserId, TActor, TTenantId>`:
 
