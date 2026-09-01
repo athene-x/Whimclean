@@ -120,6 +120,50 @@ public sealed class MultiTenantDbContextTests
     }
 
     [Fact]
+    public async Task IncludeSoftDeleted_RevealsDeletedButKeepsTenantIsolation()
+    {
+        var databaseRoot = new InMemoryDatabaseRoot();
+        var tenantOneId = Guid.NewGuid();
+        var tenantTwoId = Guid.NewGuid();
+
+        await using (var tenantOneContext = CreateContext(
+                         databaseRoot,
+                         tenantOneId))
+        {
+            tenantOneContext.Aggregates.AddRange(
+                new TenantAggregate(Guid.NewGuid(), tenantOneId),
+                new TenantAggregate(
+                    Guid.NewGuid(),
+                    tenantOneId,
+                    isDeleted: true));
+            await tenantOneContext.SaveChangesAsync();
+        }
+
+        await using (var tenantTwoContext = CreateContext(
+                         databaseRoot,
+                         tenantTwoId))
+        {
+            tenantTwoContext.Aggregates.Add(
+                new TenantAggregate(Guid.NewGuid(), tenantTwoId));
+            await tenantTwoContext.SaveChangesAsync();
+        }
+
+        await using var queryContext = CreateContext(
+            databaseRoot,
+            tenantOneId);
+
+        var records = await queryContext.Aggregates
+            .IncludeSoftDeleted()
+            .ToArrayAsync();
+
+        Assert.Equal(2, records.Length);
+        Assert.All(
+            records,
+            aggregate => Assert.Equal(tenantOneId, aggregate.TenantId));
+        Assert.Contains(records, aggregate => aggregate.IsDeleted);
+    }
+
+    [Fact]
     public async Task SaveChangesAsync_RejectsCrossTenantWrite()
     {
         await using var context = CreateContext(
