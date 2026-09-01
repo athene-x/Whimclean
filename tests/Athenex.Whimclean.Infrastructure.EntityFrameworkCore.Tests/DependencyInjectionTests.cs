@@ -23,10 +23,10 @@ public sealed class DependencyInjectionTests
     }
 
     [Fact]
-    public void AddEntityFrameworkCoreDbContext_RegistersContextAndUnitOfWork()
+    public void AddEntityFrameworkCoreUnitOfWork_RegistersContextAndUnitOfWork()
     {
         var services = new ServiceCollection();
-        services.AddEntityFrameworkCoreDbContext<TestDbContext>((_, options) =>
+        services.AddEntityFrameworkCoreUnitOfWork<TestDbContext>((_, options) =>
             options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
 
         using var serviceProvider = services.BuildServiceProvider();

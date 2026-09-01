@@ -25,10 +25,10 @@ public sealed class DependencyInjectionTests
     }
 
     [Fact]
-    public void AddPostgreSqlDbContext_RegistersNpgsqlContextAndUnitOfWork()
+    public void AddPostgreSqlUnitOfWork_RegistersNpgsqlContextAndUnitOfWork()
     {
         var services = new ServiceCollection();
-        services.AddPostgreSqlDbContext<TestDbContext>(
+        services.AddPostgreSqlUnitOfWork<TestDbContext>(
             "Host=localhost;Database=test;Username=test;Password=test");
 
         using var serviceProvider = services.BuildServiceProvider();
