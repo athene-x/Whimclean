@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Application</Title>
     <Description>Application-layer abstractions for request context, email, pagination, persistence, and validated list queries.</Description>
     <PackageTags>application-layer;clean-architecture;email;pagination;queries;unit-of-work</PackageTags>
-    <PackageReleaseNotes>Moves tenant context contracts to the optional multitenancy package and adds the required-current-user boundary exception.</PackageReleaseNotes>
+    <PackageReleaseNotes>Removes the unused request-context contract, adds GetRequiredUserId, richer filter operators with verbatim values, a bounded facet limit, null-element boundary checks, and a multi-recipient email message with attachments.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -3,10 +3,19 @@ namespace Athenex.Whimclean.Application.Queries;
 /// <summary>
 /// Validated, normalized input for computing the distinct values (a facet)
 /// of one field under the same search and filter constraints as a list
-/// query. Limits mirror <see cref="ListQueryOptions" />.
+/// query. Limits mirror <see cref="ListQueryOptions" />; the number of
+/// values returned is bounded by <see cref="Limit" />.
 /// </summary>
 public sealed class FacetQueryOptions
 {
+    /// <summary>
+    /// Number of facet values returned when the caller specifies no limit.
+    /// </summary>
+    public const int DefaultLimit = 100;
+
+    /// <summary>Largest accepted facet value limit.</summary>
+    public const int MaximumLimit = 1000;
+
     /// <summary>
     /// Validates and normalizes the raw input: field and search term are
     /// trimmed, a blank search term becomes <see langword="null" />, and
@@ -15,43 +24,37 @@ public sealed class FacetQueryOptions
     /// <exception cref="ArgumentException">
     /// <paramref name="field" /> is <see langword="null" /> or whitespace,
     /// the trimmed search term exceeds
-    /// <see cref="ListQueryOptions.MaximumSearchLength" /> characters, or
-    /// more than <see cref="ListQueryOptions.MaximumFilters" /> filters
-    /// were supplied.
+    /// <see cref="ListQueryOptions.MaximumSearchLength" /> characters, more
+    /// than <see cref="ListQueryOptions.MaximumFilters" /> filters were
+    /// supplied, or <paramref name="filters" /> contains a
+    /// <see langword="null" /> element.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="limit" /> is less than 1 or exceeds
+    /// <see cref="MaximumLimit" />.
     /// </exception>
     public FacetQueryOptions(
         string field,
         string? searchTerm = null,
         SortDirection direction = SortDirection.Ascending,
-        IEnumerable<FilterTerm>? filters = null)
+        IEnumerable<FilterTerm>? filters = null,
+        int limit = DefaultLimit)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(field);
-
-        var normalizedSearchTerm = string.IsNullOrWhiteSpace(searchTerm)
-            ? null
-            : searchTerm.Trim();
-
-        if (normalizedSearchTerm?.Length > ListQueryOptions.MaximumSearchLength)
-        {
-            throw new ArgumentException(
-                $"The search term cannot exceed " +
-                $"{ListQueryOptions.MaximumSearchLength} characters.",
-                nameof(searchTerm));
-        }
-
-        var materializedFilters = filters?.ToArray() ?? [];
-        if (materializedFilters.Length > ListQueryOptions.MaximumFilters)
-        {
-            throw new ArgumentException(
-                $"A query cannot contain more than " +
-                $"{ListQueryOptions.MaximumFilters} filters.",
-                nameof(filters));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaximumLimit);
 
         Field = field.Trim();
-        SearchTerm = normalizedSearchTerm;
-        Filters = Array.AsReadOnly(materializedFilters);
+        SearchTerm = QueryValidation.NormalizeSearchTerm(
+            searchTerm,
+            nameof(searchTerm));
+        Filters = Array.AsReadOnly(QueryValidation.MaterializeTerms(
+            filters,
+            ListQueryOptions.MaximumFilters,
+            "filters",
+            nameof(filters)));
         Direction = direction;
+        Limit = limit;
     }
 
     /// <summary>
@@ -76,4 +79,11 @@ public sealed class FacetQueryOptions
     /// Order the facet values are returned in; ascending by default.
     /// </summary>
     public SortDirection Direction { get; }
+
+    /// <summary>
+    /// Largest number of distinct values the query may return; between 1
+    /// and <see cref="MaximumLimit" />, <see cref="DefaultLimit" /> unless
+    /// specified otherwise.
+    /// </summary>
+    public int Limit { get; }
 }

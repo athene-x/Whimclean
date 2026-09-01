@@ -19,14 +19,10 @@ using Athenex.Whimclean.Application.Context;
 
 public sealed class CreateOrderHandler(ICurrentUser<Guid> currentUser)
 {
-    public Guid GetRequiredUserId()
+    public void Handle()
     {
-        if (!currentUser.TryGetUserId(out var userId))
-        {
-            throw new CurrentUserRequiredException();
-        }
-
-        return userId;
+        // Throws CurrentUserRequiredException when no principal is available.
+        var userId = currentUser.GetRequiredUserId();
     }
 }
 ```
@@ -60,7 +56,7 @@ var options = new ListQueryOptions(
 
 Infrastructure should translate only application-approved field names and operators into database expressions. Do not dynamically execute arbitrary client field names.
 
-`FacetQueryOptions` provides the equivalent bounded input for distinct-value or facet queries.
+`FacetQueryOptions` provides the equivalent bounded input for distinct-value or facet queries; its `limit` caps how many values a facet may return (100 by default). `FilterTerm` also supports `NotEqual`, `Contains`, `StartsWith`, `EndsWith`, and multi-value `In` comparisons; filter values are passed through verbatim so whitespace-significant data stays matchable.
 
 ## Pagination results
 
@@ -77,6 +73,18 @@ await emailSender.SendAsync(
         "Welcome",
         "Your account is ready."),
     cancellationToken);
+```
+
+The full constructor accepts multiple recipients, CC/BCC lists, `from`/`replyTo` overrides, and `EmailAttachment` files:
+
+```csharp
+var invoice = new EmailMessage(
+    recipients: ["owner@example.com", "billing@example.com"],
+    subject: "Invoice 2026-08",
+    textBody: "Your invoice is attached.",
+    bcc: ["audit@example.com"],
+    replyTo: "support@example.com",
+    attachments: [new EmailAttachment("invoice.pdf", pdfBytes, "application/pdf")]);
 ```
 
 The consuming infrastructure project owns SMTP or provider-specific delivery.
