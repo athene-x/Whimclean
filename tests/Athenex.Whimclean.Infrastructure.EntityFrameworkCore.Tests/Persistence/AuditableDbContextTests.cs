@@ -79,7 +79,7 @@ public sealed class AuditableDbContextTests
 
         var visible = await context.Set<SoftDeleteEntity>().ToArrayAsync();
         var all = await context.Set<SoftDeleteEntity>()
-            .IgnoreQueryFilters()
+            .IncludeSoftDeleted()
             .ToArrayAsync();
 
         Assert.Single(visible);
@@ -130,10 +130,79 @@ public sealed class AuditableDbContextTests
         Assert.IsType<DbUpdateConcurrencyException>(exception.InnerException);
     }
 
+    [Fact]
+    public async Task SaveChangesAsync_RejectsHardDeleteOfSoftDeletableEntity()
+    {
+        await using var context = CreateContext(
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow,
+            new RecordingDomainEventDispatcher());
+
+        var entity = new SoftDeleteEntity(Guid.NewGuid(), isDeleted: false);
+        context.Set<SoftDeleteEntity>().Add(entity);
+        await context.SaveChangesAsync();
+
+        context.Set<SoftDeleteEntity>().Remove(entity);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => context.SaveChangesAsync());
+
+        Assert.Contains("soft-delete", exception.Message);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_PreservesEventsRaisedDuringDispatch()
+    {
+        var dispatcher = new FollowUpRaisingDispatcher();
+        await using var context = CreateContext(
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow,
+            dispatcher);
+
+        var aggregate = new TestAggregate(Guid.NewGuid());
+        dispatcher.Aggregate = aggregate;
+        context.Aggregates.Add(aggregate);
+
+        await context.SaveChangesAsync();
+
+        // The event a handler raised during dispatch must survive on the
+        // aggregate for the next commit instead of being cleared unseen.
+        Assert.Single(aggregate.DomainEvents);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WrapsDispatchFailureAfterCommit()
+    {
+        var databaseRoot = new InMemoryDatabaseRoot();
+        var databaseName = Guid.NewGuid().ToString();
+
+        await using (var context = CreateContext(
+                         Guid.NewGuid(),
+                         DateTimeOffset.UtcNow,
+                         new ThrowingDomainEventDispatcher(),
+                         databaseRoot,
+                         databaseName))
+        {
+            context.Aggregates.Add(new TestAggregate(Guid.NewGuid()));
+
+            await Assert.ThrowsAsync<DomainEventDispatchException>(
+                () => context.SaveChangesAsync());
+        }
+
+        await using var verificationContext = CreateContext(
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow,
+            new RecordingDomainEventDispatcher(),
+            databaseRoot,
+            databaseName);
+
+        Assert.Equal(1, await verificationContext.Aggregates.CountAsync());
+    }
+
     private static TestDbContext CreateContext(
         Guid? actorId,
         DateTimeOffset now,
-        RecordingDomainEventDispatcher dispatcher,
+        IDomainEventDispatcher dispatcher,
         InMemoryDatabaseRoot? databaseRoot = null,
         string? databaseName = null)
     {
@@ -234,6 +303,9 @@ public sealed class AuditableDbContextTests
         public Guid? CreatedBy { get; private set; }
         public DateTimeOffset? UpdatedAt { get; private set; }
         public Guid? UpdatedBy { get; private set; }
+
+        public void RaiseFollowUpEvent() =>
+            RaiseDomainEvent(new TestDomainEvent(Id));
     }
 
     private sealed record TestDomainEvent(Guid Id) : DomainEvent;
@@ -266,6 +338,34 @@ public sealed class AuditableDbContextTests
             Events.Add(domainEvent);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FollowUpRaisingDispatcher : IDomainEventDispatcher
+    {
+        private bool _hasRaisedFollowUp;
+
+        public TestAggregate? Aggregate { get; set; }
+
+        public Task DispatchAsync(
+            IDomainEvent domainEvent,
+            CancellationToken cancellationToken = default)
+        {
+            if (!_hasRaisedFollowUp)
+            {
+                _hasRaisedFollowUp = true;
+                Aggregate?.RaiseFollowUpEvent();
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class ThrowingDomainEventDispatcher : IDomainEventDispatcher
+    {
+        public Task DispatchAsync(
+            IDomainEvent domainEvent,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Handler failed.");
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
