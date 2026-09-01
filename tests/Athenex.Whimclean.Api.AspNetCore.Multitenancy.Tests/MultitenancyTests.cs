@@ -88,6 +88,52 @@ public sealed class MultitenancyTests
         Assert.False(tenantContext.TryGetTenantId(out _));
     }
 
+    [Fact]
+    public async Task TenantMemberHandler_WithoutRequestedTenant_LeavesRequirementUnmet()
+    {
+        var tenantContext = new TenantContext<Guid>();
+        var requirement = new TenantMemberRequirement();
+        var authorizationContext = new AuthorizationHandlerContext(
+            [requirement],
+            new System.Security.Claims.ClaimsPrincipal(),
+            resource: null);
+        var handler = new TenantMemberAuthorizationHandler<Guid, Guid>(
+            new FixedCurrentUser(Guid.NewGuid()),
+            new NoRequestedTenant(),
+            new FixedAccessValidator(hasAccess: true),
+            tenantContext);
+
+        await handler.HandleAsync(authorizationContext);
+
+        Assert.False(authorizationContext.HasSucceeded);
+        Assert.False(tenantContext.TryGetTenantId(out _));
+    }
+
+    [Fact]
+    public async Task TenantMemberHandler_ForwardsTheRequestAbortedToken()
+    {
+        using var cancellationSource = new CancellationTokenSource();
+        var httpContext = new DefaultHttpContext
+        {
+            RequestAborted = cancellationSource.Token
+        };
+        var validator = new TokenCapturingAccessValidator();
+        var requirement = new TenantMemberRequirement();
+        var authorizationContext = new AuthorizationHandlerContext(
+            [requirement],
+            new System.Security.Claims.ClaimsPrincipal(),
+            httpContext);
+        var handler = new TenantMemberAuthorizationHandler<Guid, Guid>(
+            new FixedCurrentUser(Guid.NewGuid()),
+            new FixedRequestedTenant(Guid.NewGuid()),
+            validator,
+            new TenantContext<Guid>());
+
+        await handler.HandleAsync(authorizationContext);
+
+        Assert.Equal(cancellationSource.Token, validator.CapturedToken);
+    }
+
     [Theory]
     [InlineData(typeof(CurrentTenantRequiredException), "Tenancy.CurrentTenantRequired")]
     [InlineData(typeof(TenantAccessViolationException), "Tenancy.AccessDenied")]
@@ -134,5 +180,29 @@ public sealed class MultitenancyTests
             Guid tenantId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(hasAccess);
+    }
+
+    private sealed class NoRequestedTenant : IRequestedTenant<Guid>
+    {
+        public bool TryGetTenantId(out Guid resolvedTenantId)
+        {
+            resolvedTenantId = default;
+            return false;
+        }
+    }
+
+    private sealed class TokenCapturingAccessValidator
+        : ITenantAccessValidator<Guid, Guid>
+    {
+        public CancellationToken CapturedToken { get; private set; }
+
+        public Task<bool> HasAccessAsync(
+            Guid userId,
+            Guid tenantId,
+            CancellationToken cancellationToken = default)
+        {
+            CapturedToken = cancellationToken;
+            return Task.FromResult(true);
+        }
     }
 }

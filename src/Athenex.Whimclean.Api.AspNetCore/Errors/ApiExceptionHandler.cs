@@ -25,7 +25,10 @@ public sealed class ApiExceptionHandler(
     /// Writes the mapped status code and error body when a mapper
     /// recognizes the exception; otherwise responds with 500
     /// <c>"Server.UnexpectedError"</c>, hiding the exception details from
-    /// the client. Always handles the exception.
+    /// the client. A cancellation caused by the client aborting the
+    /// request is logged at debug level and produces no body — nobody is
+    /// listening, and it is not a server error. Always handles the
+    /// exception.
     /// </summary>
     /// <param name="httpContext">The request whose pipeline threw.</param>
     /// <param name="exception">The unhandled exception.</param>
@@ -41,6 +44,16 @@ public sealed class ApiExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
+        if (exception is OperationCanceledException &&
+            httpContext.RequestAborted.IsCancellationRequested)
+        {
+            logger.LogDebug(
+                exception,
+                "The request was aborted by the client.");
+
+            return true;
+        }
+
         var isKnownException = false;
         var mapping = default(ApiExceptionMapping);
 

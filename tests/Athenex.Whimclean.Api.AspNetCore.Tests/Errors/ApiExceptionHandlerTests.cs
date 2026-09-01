@@ -53,6 +53,46 @@ public sealed class ApiExceptionHandlerTests
         Assert.DoesNotContain("Sensitive", response.Description);
     }
 
+    [Fact]
+    public async Task TryHandleAsync_WithAbortedRequest_WritesNoBody()
+    {
+        using var abortSource = new CancellationTokenSource();
+        await abortSource.CancelAsync();
+        var context = new DefaultHttpContext
+        {
+            RequestAborted = abortSource.Token
+        };
+        context.Response.Body = new MemoryStream();
+        var handler = new ApiExceptionHandler(
+            [new DefaultApiExceptionMapper()],
+            NullLogger<ApiExceptionHandler>.Instance);
+
+        var handled = await handler.TryHandleAsync(
+            context,
+            new OperationCanceledException(),
+            CancellationToken.None);
+
+        // The client is gone: handle the exception (no 500 in the logs,
+        // nothing rethrown) but do not attempt a response body.
+        Assert.True(handled);
+        Assert.Equal(0, context.Response.Body.Length);
+    }
+
+    [Fact]
+    public async Task TryHandleAsync_WithServerSideCancellation_StillMaps500()
+    {
+        // A cancellation NOT caused by the client aborting (e.g. an
+        // internal timeout) is a real server error and keeps the 500 body.
+        var (handled, context, response) = await HandleAsync(
+            new OperationCanceledException());
+
+        Assert.True(handled);
+        Assert.Equal(
+            StatusCodes.Status500InternalServerError,
+            context.Response.StatusCode);
+        Assert.Equal("Server.UnexpectedError", response.Code);
+    }
+
     private static async Task<(bool Handled, DefaultHttpContext Context, ApiErrorResponse Response)>
         HandleAsync(Exception exception)
     {

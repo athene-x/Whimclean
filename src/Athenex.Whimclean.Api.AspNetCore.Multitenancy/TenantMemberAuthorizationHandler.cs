@@ -1,6 +1,7 @@
 using Athenex.Whimclean.Application.Context;
 using Athenex.Whimclean.Multitenancy;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 
 namespace Athenex.Whimclean.Api.AspNetCore.Multitenancy;
 
@@ -53,9 +54,16 @@ public sealed class TenantMemberAuthorizationHandler<TUserId, TTenantId>(
             return;
         }
 
+        // Endpoint routing passes the HttpContext as the resource; abort
+        // the membership lookup with the request it serves.
+        var cancellationToken = context.Resource is HttpContext httpContext
+            ? httpContext.RequestAborted
+            : CancellationToken.None;
+
         var hasAccess = await accessValidator.HasAccessAsync(
             userId,
-            tenantId);
+            tenantId,
+            cancellationToken);
 
         if (!hasAccess)
         {
