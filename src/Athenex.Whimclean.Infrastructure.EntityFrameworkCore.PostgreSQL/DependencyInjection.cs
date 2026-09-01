@@ -34,8 +34,7 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         return services.AddEntityFrameworkCoreContext<TContext>((_, options) =>
-            options.UseNpgsql(connectionString, postgreSqlOptions =>
-                configurePostgreSql?.Invoke(postgreSqlOptions)));
+            options.UseNpgsql(connectionString, configurePostgreSql));
     }
 
     /// <summary>
@@ -59,7 +58,6 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         return services.AddEntityFrameworkCoreUnitOfWork<TContext>((_, options) =>
-            options.UseNpgsql(connectionString, postgreSqlOptions =>
-                configurePostgreSql?.Invoke(postgreSqlOptions)));
+            options.UseNpgsql(connectionString, configurePostgreSql));
     }
 }

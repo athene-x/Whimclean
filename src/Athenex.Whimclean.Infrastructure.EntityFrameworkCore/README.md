@@ -52,22 +52,21 @@ using Athenex.Whimclean.Infrastructure.EntityFrameworkCore;
 
 services.AddSingleton(TimeProvider.System);
 services.AddScoped<ICurrentUser<Guid>, HttpCurrentUser>();
-services.AddSingleton<
-    IAuditActorResolver<Guid, Guid?>,
-    NullableAuditActorResolver<Guid>>();
-services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+services.AddNullableAuditActorResolver<Guid>();
+services.AddDomainEventDispatcher();
 
-services.AddEntityFrameworkCoreDbContext<ApplicationDbContext>((_, options) =>
+services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>((_, options) =>
     options.UseSqlServer(connectionString));
 ```
 
-`AddEntityFrameworkCoreDbContext<TContext>` requires `IUnitOfWork` and registers the context as that interface. Use `AddEntityFrameworkCoreContext<TContext>` for framework-owned contexts such as Identity contexts that should not become the application unit of work.
+`AddEntityFrameworkCoreUnitOfWork<TContext>` requires `IUnitOfWork` and registers the context as that interface. Use `AddEntityFrameworkCoreContext<TContext>` for framework-owned contexts that should not become the application unit of work. In ASP.NET Core applications, `Athenex.Whimclean.Api.AspNetCore` supplies a claims-based `ICurrentUser<TUserId>` via `AddClaimsCurrentUser<TUserId>`.
 
 ## Persistence behavior
 
 - Every added, modified, or deleted record requires a current user. Background work should supply an explicit system-user implementation.
 - `ICreateAuditable`, `IUpdateAuditable`, and `ISoftDelete` fields are populated from `TimeProvider` and `IAuditActorResolver`.
 - `ISoftDelete` entities receive the named `SoftDeleteFilter`; physical deletes are not automatically converted into soft deletes.
+- Delete stamps (`DeletedAt`/`DeletedBy`) are written when the `IsDeleted` flag flips on an update, and cleared on restore. Records added already deleted keep the values they were supplied with, so imports preserve historical truth.
 - `DbUpdateConcurrencyException` becomes `PersistenceConcurrencyException`.
 - Aggregate domain events are dispatched after a successful database save and then cleared.
 - Synchronous `SaveChanges` is intentionally unsupported. Use `SaveChangesAsync` or `IUnitOfWork.CommitAsync`.

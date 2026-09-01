@@ -59,7 +59,7 @@ Api.FastEndpoints.Multitenancy
     -> Multitenancy.Abstractions
 ```
 
-The PostgreSQL project contains no auditing, tenant, soft-delete, concurrency, or domain-event pipeline. Common persistence behaviors live in the provider-neutral EF Core package, while tenant behavior is an optional decorator package. A future provider package therefore needs only its provider dependency and a registration method that delegates to `AddEntityFrameworkCoreDbContext<TContext>`.
+The PostgreSQL project contains no auditing, tenant, soft-delete, concurrency, or domain-event pipeline. Common persistence behaviors live in the provider-neutral EF Core package, while tenant behavior is an optional decorator package. A future provider package therefore needs only its provider dependency and a registration method that delegates to `AddEntityFrameworkCoreUnitOfWork<TContext>`.
 
 ## Entities and aggregate roots
 
@@ -192,13 +192,13 @@ services.AddSingleton<
     IAuditActorResolver<Guid, Guid?>,
     NullableAuditActorResolver<Guid>>();
 services.AddScoped<IDomainEventDispatcher, MediatorDomainEventDispatcher>();
-services.AddPostgreSqlDbContext<ApplicationDbContext>(connectionString);
+services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(connectionString);
 ```
 
 PostgreSQL-specific Npgsql options stay at the provider edge:
 
 ```csharp
-services.AddPostgreSqlDbContext<ApplicationDbContext>(
+services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(
     connectionString,
     postgreSql => postgreSql.MigrationsAssembly("MyApp.Migrations.PostgreSQL"));
 ```
@@ -206,7 +206,7 @@ services.AddPostgreSqlDbContext<ApplicationDbContext>(
 To use another provider before a dedicated Whimclean adapter exists, reference `Athenex.Whimclean.Infrastructure.EntityFrameworkCore` plus that provider and configure it through the common registration method:
 
 ```csharp
-services.AddEntityFrameworkCoreDbContext<ApplicationDbContext>((_, options) =>
+services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>((_, options) =>
     options.UseSqlServer(connectionString));
 ```
 
@@ -325,7 +325,7 @@ public sealed class ListOrdersEndpoint : EndpointWithoutRequest
 
 The header resolver treats its value only as a requested tenant. `ICurrentTenant<TTenantId>` remains unset until the authenticated user passes `ITenantAccessValidator`; callers therefore cannot select an unauthorized tenant merely by changing a header. A host, route, or claim resolver can replace `IRequestedTenantResolver<TTenantId>` without changing the EF layer.
 
-Entities implementing `IMultiTenant<TTenantId>` receive a fail-closed named `TenantFilter`. Without an authorized current tenant, queries return no tenant records. Added, modified, or deleted tenant records must match the current tenant; the context validates but never rewrites `TenantId`. Administrative queries must remain separately authorized and can disable only the required filter on EF Core 10:
+Entities implementing `IMultiTenant<TTenantId>` receive a fail-closed named `TenantFilter`. Without an authorized current tenant, queries return no tenant records. Added, modified, or deleted tenant records must match the current tenant and may not change `TenantId`; the context validates but never rewrites it. Administrative queries must remain separately authorized and can disable only the required filter on EF Core 10:
 
 ```csharp
 var includingDeleted = dbContext.Orders

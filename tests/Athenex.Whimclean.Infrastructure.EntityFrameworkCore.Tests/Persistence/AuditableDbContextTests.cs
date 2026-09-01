@@ -151,6 +151,102 @@ public sealed class AuditableDbContextTests
     }
 
     [Fact]
+    public void SaveChanges_BoolOverload_ThrowsBecauseDomainEventDispatchIsAsync()
+    {
+        using var context = CreateContext(
+            actorId: null,
+            DateTimeOffset.UtcNow,
+            new RecordingDomainEventDispatcher());
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => context.SaveChanges(acceptAllChangesOnSuccess: true));
+
+        Assert.Contains("SaveChangesAsync", exception.Message);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_StampsUpdateAudit()
+    {
+        var creatorId = Guid.NewGuid();
+        var updaterId = Guid.NewGuid();
+        var createdAt = new DateTimeOffset(2026, 8, 21, 10, 0, 0, TimeSpan.Zero);
+        var updatedAt = createdAt.AddHours(1);
+        var databaseRoot = new InMemoryDatabaseRoot();
+        var databaseName = Guid.NewGuid().ToString();
+        var aggregateId = Guid.NewGuid();
+
+        await using (var createContext = CreateContext(
+                         creatorId,
+                         createdAt,
+                         new RecordingDomainEventDispatcher(),
+                         databaseRoot,
+                         databaseName))
+        {
+            createContext.Aggregates.Add(new TestAggregate(aggregateId));
+            await createContext.SaveChangesAsync();
+        }
+
+        await using var updateContext = CreateContext(
+            updaterId,
+            updatedAt,
+            new RecordingDomainEventDispatcher(),
+            databaseRoot,
+            databaseName);
+        var aggregate = await updateContext.Aggregates.SingleAsync();
+        updateContext.Entry(aggregate).State = EntityState.Modified;
+
+        await updateContext.SaveChangesAsync();
+
+        Assert.Equal(createdAt, aggregate.CreatedAt);
+        Assert.Equal(creatorId, aggregate.CreatedBy);
+        Assert.Equal(updatedAt, aggregate.UpdatedAt);
+        Assert.Equal(updaterId, aggregate.UpdatedBy);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_StampsSoftDeleteAndClearsOnRestore()
+    {
+        var deleterId = Guid.NewGuid();
+        var deletedAt = new DateTimeOffset(2026, 8, 21, 10, 0, 0, TimeSpan.Zero);
+        var databaseRoot = new InMemoryDatabaseRoot();
+        var databaseName = Guid.NewGuid().ToString();
+
+        await using (var seedContext = CreateContext(
+                         Guid.NewGuid(),
+                         deletedAt.AddDays(-1),
+                         new RecordingDomainEventDispatcher(),
+                         databaseRoot,
+                         databaseName))
+        {
+            seedContext.Set<SoftDeleteEntity>().Add(
+                new SoftDeleteEntity(Guid.NewGuid(), isDeleted: false));
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var deleteContext = CreateContext(
+            deleterId,
+            deletedAt,
+            new RecordingDomainEventDispatcher(),
+            databaseRoot,
+            databaseName);
+        var entity = await deleteContext.Set<SoftDeleteEntity>().SingleAsync();
+        entity.Delete();
+
+        await deleteContext.SaveChangesAsync();
+
+        Assert.Equal(deletedAt, entity.DeletedAt);
+        Assert.Equal(deleterId, entity.DeletedBy);
+
+        entity.Restore();
+
+        await deleteContext.SaveChangesAsync();
+
+        Assert.False(entity.IsDeleted);
+        Assert.Null(entity.DeletedAt);
+        Assert.Null(entity.DeletedBy);
+    }
+
+    [Fact]
     public async Task SaveChangesAsync_PreservesEventsRaisedDuringDispatch()
     {
         var dispatcher = new FollowUpRaisingDispatcher();
@@ -287,6 +383,10 @@ public sealed class AuditableDbContextTests
         public bool IsDeleted { get; private set; }
         public DateTimeOffset? DeletedAt { get; private set; }
         public Guid? DeletedBy { get; private set; }
+
+        public void Delete() => IsDeleted = true;
+
+        public void Restore() => IsDeleted = false;
     }
 
     private sealed class ConcurrentEntity(Guid id)

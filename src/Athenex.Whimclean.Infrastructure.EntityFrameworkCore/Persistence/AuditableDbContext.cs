@@ -332,7 +332,10 @@ public abstract class AuditableDbContext<TUserId, TActor>(
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            if (!softDeleteType.IsAssignableFrom(entityType.ClrType) ||
+            // Owned types cannot carry query filters; configuring one via
+            // modelBuilder.Entity would also detach it from its owner.
+            if (entityType.IsOwned() ||
+                !softDeleteType.IsAssignableFrom(entityType.ClrType) ||
                 (entityType.BaseType is not null &&
                  softDeleteType.IsAssignableFrom(entityType.BaseType.ClrType)))
             {
