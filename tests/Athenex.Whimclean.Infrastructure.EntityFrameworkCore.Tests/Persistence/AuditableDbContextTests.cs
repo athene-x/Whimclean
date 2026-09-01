@@ -183,10 +183,19 @@ public sealed class AuditableDbContextTests
                          databaseRoot,
                          databaseName))
         {
-            context.Aggregates.Add(new TestAggregate(Guid.NewGuid()));
+            var aggregateId = Guid.NewGuid();
+            context.Aggregates.Add(new TestAggregate(aggregateId));
 
-            await Assert.ThrowsAsync<DomainEventDispatchException>(
-                () => context.SaveChangesAsync());
+            var exception =
+                await Assert.ThrowsAsync<DomainEventDispatchException>(
+                    () => context.SaveChangesAsync());
+
+            // The aggregate was cleared before dispatch, so the exception
+            // must carry the only remaining copy of the undelivered event.
+            var undeliveredEvent = Assert.Single(exception.UndeliveredEvents);
+            Assert.Equal(
+                aggregateId,
+                Assert.IsType<TestDomainEvent>(undeliveredEvent).Id);
         }
 
         await using var verificationContext = CreateContext(

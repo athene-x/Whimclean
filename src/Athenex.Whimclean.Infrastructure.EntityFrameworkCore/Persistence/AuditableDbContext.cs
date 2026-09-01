@@ -109,7 +109,8 @@ public abstract class AuditableDbContext<TUserId, TActor>(
     /// </exception>
     /// <exception cref="DomainEventDispatchException">
     /// The save succeeded but an event handler failed; do not retry the
-    /// save.
+    /// save. The events that never reached their handlers are on
+    /// <see cref="DomainEventDispatchException.UndeliveredEvents" />.
     /// </exception>
     public override async Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,
@@ -160,20 +161,23 @@ public abstract class AuditableDbContext<TUserId, TActor>(
             aggregate.ClearDomainEvents();
         }
 
-        try
+        for (var index = 0; index < domainEvents.Length; index++)
         {
-            // The commit already succeeded; a caller-requested cancellation
-            // must not abort delivery of events for persisted changes.
-            foreach (var domainEvent in domainEvents)
+            try
             {
+                // The commit already succeeded; a caller-requested
+                // cancellation must not abort delivery of events for
+                // persisted changes.
                 await domainEventDispatcher.DispatchAsync(
-                    domainEvent,
+                    domainEvents[index],
                     CancellationToken.None);
             }
-        }
-        catch (Exception exception)
-        {
-            throw new DomainEventDispatchException(exception);
+            catch (Exception exception)
+            {
+                throw new DomainEventDispatchException(
+                    domainEvents[index..],
+                    exception);
+            }
         }
 
         return savedCount;
