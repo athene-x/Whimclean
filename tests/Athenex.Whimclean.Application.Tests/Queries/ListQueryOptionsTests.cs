@@ -40,6 +40,20 @@ public sealed class ListQueryOptionsTests
     }
 
     [Fact]
+    public void Constructor_WithNullSortElement_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(
+            () => new ListQueryOptions(sort: [null!]));
+    }
+
+    [Fact]
+    public void Constructor_WithNullFilterElement_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(
+            () => new ListQueryOptions(filters: [null!]));
+    }
+
+    [Fact]
     public void Constructor_WhenSizeExceedsMaximum_ThrowsArgumentOutOfRangeException()
     {
         Assert.Throws<ArgumentOutOfRangeException>(

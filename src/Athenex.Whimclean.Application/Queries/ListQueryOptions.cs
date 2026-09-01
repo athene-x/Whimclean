@@ -41,8 +41,9 @@ public sealed class ListQueryOptions
     /// <exception cref="ArgumentException">
     /// The trimmed search term exceeds
     /// <see cref="MaximumSearchLength" /> characters, more than
-    /// <see cref="MaximumSortTerms" /> sort terms were supplied, or more
-    /// than <see cref="MaximumFilters" /> filters were supplied.
+    /// <see cref="MaximumSortTerms" /> sort terms were supplied, more than
+    /// <see cref="MaximumFilters" /> filters were supplied, or a sort or
+    /// filter sequence contains a <see langword="null" /> element.
     /// </exception>
     public ListQueryOptions(
         string? searchTerm = null,
@@ -55,33 +56,21 @@ public sealed class ListQueryOptions
         ArgumentOutOfRangeException.ThrowIfLessThan(size, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(size, MaximumSize);
 
-        var normalizedSearchTerm = string.IsNullOrWhiteSpace(searchTerm)
-            ? null
-            : searchTerm.Trim();
+        var normalizedSearchTerm = QueryValidation.NormalizeSearchTerm(
+            searchTerm,
+            nameof(searchTerm));
 
-        if (normalizedSearchTerm?.Length > MaximumSearchLength)
-        {
-            throw new ArgumentException(
-                $"The search term cannot exceed {MaximumSearchLength} characters.",
-                nameof(searchTerm));
-        }
+        var materializedSort = QueryValidation.MaterializeTerms(
+            sort,
+            MaximumSortTerms,
+            "sort terms",
+            nameof(sort));
 
-        var materializedSort = sort?.ToArray() ?? [];
-        var materializedFilters = filters?.ToArray() ?? [];
-
-        if (materializedSort.Length > MaximumSortTerms)
-        {
-            throw new ArgumentException(
-                $"A query cannot contain more than {MaximumSortTerms} sort terms.",
-                nameof(sort));
-        }
-
-        if (materializedFilters.Length > MaximumFilters)
-        {
-            throw new ArgumentException(
-                $"A query cannot contain more than {MaximumFilters} filters.",
-                nameof(filters));
-        }
+        var materializedFilters = QueryValidation.MaterializeTerms(
+            filters,
+            MaximumFilters,
+            "filters",
+            nameof(filters));
 
         var offset = ((long)page - 1) * size;
         if (offset > int.MaxValue)

@@ -42,6 +42,13 @@ public sealed class OffsetPagedResultTests
     }
 
     [Fact]
+    public void Constructor_WithNullItemElement_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(
+            () => new OffsetPagedResult<string>(["first", null!], 1, 10, 2));
+    }
+
+    [Fact]
     public void Constructor_WhenItemCountExceedsTotal_ThrowsArgumentException()
     {
         Assert.Throws<ArgumentException>(

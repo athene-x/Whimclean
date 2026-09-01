@@ -43,4 +43,11 @@ public sealed class KeysetPagedResultTests
         Assert.Throws<ArgumentException>(
             () => new KeysetPagedResult<int, Guid>([1, 2], 1));
     }
+
+    [Fact]
+    public void Constructor_WithNullItemElement_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(
+            () => new KeysetPagedResult<string, Guid>(["first", null!], 10));
+    }
 }

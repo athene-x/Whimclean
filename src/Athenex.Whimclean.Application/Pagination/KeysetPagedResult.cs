@@ -24,7 +24,7 @@ public sealed class KeysetPagedResult<T, TKey>
     /// </exception>
     /// <exception cref="ArgumentException">
     /// <paramref name="items" /> holds more than <paramref name="size" />
-    /// elements.
+    /// elements or contains a <see langword="null" /> element.
     /// </exception>
     public KeysetPagedResult(
         IEnumerable<T> items,
@@ -47,7 +47,7 @@ public sealed class KeysetPagedResult<T, TKey>
     /// </exception>
     /// <exception cref="ArgumentException">
     /// <paramref name="items" /> holds more than <paramref name="size" />
-    /// elements.
+    /// elements or contains a <see langword="null" /> element.
     /// </exception>
     public KeysetPagedResult(
         IEnumerable<T> items,
@@ -68,6 +68,13 @@ public sealed class KeysetPagedResult<T, TKey>
         ArgumentOutOfRangeException.ThrowIfLessThan(size, 1);
 
         var materializedItems = items.ToArray();
+
+        if (materializedItems.Any(item => item is null))
+        {
+            throw new ArgumentException(
+                "The items cannot contain a null element.",
+                nameof(items));
+        }
 
         if (materializedItems.Length > size)
         {
