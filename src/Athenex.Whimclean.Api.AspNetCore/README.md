@@ -50,6 +50,31 @@ Default exception mappings:
 
 Add mappings for application exceptions by registering additional `IApiExceptionMapper` implementations.
 
+## Current user from claims
+
+`AddClaimsCurrentUser<TUserId>` registers a claims-based `ICurrentUser<TUserId>` so the auditing write boundary works with any authentication scheme that populates `HttpContext.User` — including JWT bearer tokens from an external identity provider such as Keycloak, Microsoft Entra ID, or Auth0. Whimclean does not store users or credentials; authenticate with your provider and the audit pipeline attributes writes from the token's claims.
+
+```csharp
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = "https://keycloak.example.com/realms/whimclean";
+        options.Audience = "whimclean-api";
+    });
+
+builder.Services.AddClaimsCurrentUser<Guid>();
+```
+
+The default claim type is `ClaimTypes.NameIdentifier`, which JWT bearer authentication maps the `sub` claim to. When inbound claim mapping is disabled (`options.MapInboundClaims = false`), read the raw claim instead:
+
+```csharp
+builder.Services.AddClaimsCurrentUser<Guid>(options =>
+    options.ClaimType = "sub");
+```
+
+Registration uses `TryAddScoped`, so an application-supplied `ICurrentUser<TUserId>` (for example, a background-job system user) wins over the claims implementation.
+
 ## Map results to HTTP
 
 ```csharp

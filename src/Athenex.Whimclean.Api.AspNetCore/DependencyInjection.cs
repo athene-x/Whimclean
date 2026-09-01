@@ -1,4 +1,6 @@
+using Athenex.Whimclean.Api.AspNetCore.Context;
 using Athenex.Whimclean.Api.AspNetCore.Errors;
+using Athenex.Whimclean.Application.Context;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -6,7 +8,7 @@ namespace Athenex.Whimclean.Api.AspNetCore;
 
 /// <summary>
 /// Service registrations for the framework-neutral API error-handling
-/// building block.
+/// and current-user building blocks.
 /// </summary>
 public static class DependencyInjection
 {
@@ -30,6 +32,46 @@ public static class DependencyInjection
                 DefaultApiExceptionMapper>());
         services.AddExceptionHandler<ApiExceptionHandler>();
         services.AddProblemDetails();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="ClaimsCurrentUser{TUserId}" /> as the
+    /// <see cref="ICurrentUser{TUserId}" /> (via <c>TryAddScoped</c>, so
+    /// an existing registration wins), resolving the user from a claim on
+    /// the authenticated request principal (default
+    /// <c>ClaimTypes.NameIdentifier</c>). Suits any authentication scheme
+    /// populating the principal, including JWT bearer tokens from an
+    /// external identity provider.
+    /// </summary>
+    /// <typeparam name="TUserId">
+    /// Type of the user identifier; must be parsable from the claim
+    /// value.
+    /// </typeparam>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configure">
+    /// Optional customization of
+    /// <see cref="ClaimsCurrentUserOptions" />, e.g. to read the raw
+    /// <c>sub</c> claim. Defaults to <see langword="null" />.
+    /// </param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection AddClaimsCurrentUser<TUserId>(
+        this IServiceCollection services,
+        Action<ClaimsCurrentUserOptions>? configure = null)
+        where TUserId : notnull, IParsable<TUserId>
+    {
+        services.AddHttpContextAccessor();
+        services.AddOptions<ClaimsCurrentUserOptions>();
+
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
+
+        services.TryAddScoped<
+            ICurrentUser<TUserId>,
+            ClaimsCurrentUser<TUserId>>();
 
         return services;
     }
