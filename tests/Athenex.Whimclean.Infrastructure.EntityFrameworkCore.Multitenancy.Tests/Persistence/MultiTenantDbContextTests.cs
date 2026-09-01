@@ -180,6 +180,36 @@ public sealed class MultiTenantDbContextTests
     }
 
     [Fact]
+    public async Task SaveChangesAsync_RejectsReassignmentIntoTheCurrentTenant()
+    {
+        var databaseRoot = new InMemoryDatabaseRoot();
+        var tenantOneId = Guid.NewGuid();
+        var tenantTwoId = Guid.NewGuid();
+
+        await using (var seedContext = CreateContext(databaseRoot, tenantOneId))
+        {
+            seedContext.Aggregates.Add(
+                new TenantAggregate(Guid.NewGuid(), tenantOneId));
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var capturingContext = CreateContext(
+            databaseRoot,
+            tenantTwoId);
+
+        // Reach the foreign row the way an administrative query would,
+        // then try to capture it by rewriting TenantId to the current
+        // tenant — the current-value check alone would let this through.
+        var foreignAggregate = await capturingContext.Aggregates
+            .IgnoreQueryFilters(["TenantFilter"])
+            .SingleAsync();
+        foreignAggregate.MoveToTenant(tenantTwoId);
+
+        await Assert.ThrowsAsync<TenantAccessViolationException>(
+            () => capturingContext.SaveChangesAsync());
+    }
+
+    [Fact]
     public async Task SaveChangesAsync_WithoutCurrentTenant_RejectsWrite()
     {
         await using var context = CreateContext(
@@ -258,6 +288,8 @@ public sealed class MultiTenantDbContextTests
         }
 
         public Guid TenantId { get; private set; }
+
+        public void MoveToTenant(Guid tenantId) => TenantId = tenantId;
         public DateTimeOffset CreatedAt { get; private set; }
         public Guid? CreatedBy { get; private set; }
         public DateTimeOffset? UpdatedAt { get; private set; }

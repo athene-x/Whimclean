@@ -60,13 +60,13 @@ public sealed class Order : IMultiTenant<Guid>
 PostgreSQL:
 
 ```csharp
-services.AddPostgreSqlDbContext<ApplicationDbContext>(connectionString);
+services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(connectionString);
 ```
 
 Another EF provider:
 
 ```csharp
-services.AddEntityFrameworkCoreDbContext<ApplicationDbContext>((_, options) =>
+services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>((_, options) =>
     options.UseSqlServer(connectionString));
 ```
 
@@ -77,7 +77,7 @@ Register an `ICurrentTenant<Guid>` implementation. The ASP.NET Core multitenancy
 - `IMultiTenant<TTenantId>` entities receive the named `TenantFilter`.
 - Queries return no tenant-owned records when there is no authorized current tenant.
 - Added, modified, and deleted tenant-owned records require a current tenant.
-- A record whose `TenantId` differs from the current tenant causes `TenantAccessViolationException`.
+- A record whose `TenantId` differs from the current tenant — or whose `TenantId` was modified, in either direction — causes `TenantAccessViolationException`. Tenant reassignment is never a valid write.
 - The context validates but never assigns or rewrites `TenantId`.
 - Auditing, current-user enforcement, soft deletion, concurrency translation, and domain-event behavior remain inherited from `AuditableDbContext`.
 

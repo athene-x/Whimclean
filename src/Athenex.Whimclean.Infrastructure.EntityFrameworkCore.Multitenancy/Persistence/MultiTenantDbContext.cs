@@ -90,8 +90,10 @@ public abstract class MultiTenantDbContext<TUserId, TActor, TTenantId>(
     /// <summary>
     /// Sealed: rejects any pending change to an
     /// <see cref="IMultiTenant{TTenantId}" /> entity when no current
-    /// tenant is established or when the entity belongs to a different
-    /// tenant. A no-op when no tenant-owned entities changed.
+    /// tenant is established, when the entity belongs to a different
+    /// tenant, or when its <c>TenantId</c> was modified — reassigning a
+    /// row to another tenant (including the current one) is never a valid
+    /// write. A no-op when no tenant-owned entities changed.
     /// </summary>
     /// <exception cref="CurrentTenantRequiredException">
     /// Tenant-owned changes are pending but no current tenant is
@@ -99,7 +101,7 @@ public abstract class MultiTenantDbContext<TUserId, TActor, TTenantId>(
     /// </exception>
     /// <exception cref="TenantAccessViolationException">
     /// A changed entity's <c>TenantId</c> differs from the current
-    /// tenant's.
+    /// tenant's, or was modified.
     /// </exception>
     protected sealed override void ValidateInfrastructureWrites()
     {
@@ -121,10 +123,16 @@ public abstract class MultiTenantDbContext<TUserId, TActor, TTenantId>(
             throw new CurrentTenantRequiredException();
         }
 
+        // Checking the current TenantId alone would let a row fetched
+        // past the tenant filter be captured by reassigning it to the
+        // current tenant, so a modified TenantId is rejected outright.
         var invalidEntry = tenantEntries.FirstOrDefault(entry =>
             !EqualityComparer<TTenantId>.Default.Equals(
                 entry.Entity.TenantId,
-                tenantId));
+                tenantId) ||
+            (entry.State == EntityState.Modified &&
+             entry.Property(nameof(IMultiTenant<TTenantId>.TenantId))
+                 .IsModified));
 
         if (invalidEntry is not null)
         {
@@ -138,7 +146,10 @@ public abstract class MultiTenantDbContext<TUserId, TActor, TTenantId>(
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            if (!multiTenantType.IsAssignableFrom(entityType.ClrType) ||
+            // Owned types cannot carry query filters; configuring one via
+            // modelBuilder.Entity would also detach it from its owner.
+            if (entityType.IsOwned() ||
+                !multiTenantType.IsAssignableFrom(entityType.ClrType) ||
                 (entityType.BaseType is not null &&
                  multiTenantType.IsAssignableFrom(entityType.BaseType.ClrType)))
             {
