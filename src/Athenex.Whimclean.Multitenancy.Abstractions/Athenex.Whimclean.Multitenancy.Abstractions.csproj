@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- Abstractions convention: types ship in the parent namespace so
+         abstractions and implementations read as one API. -->
+    <RootNamespace>Athenex.Whimclean.Multitenancy</RootNamespace>
     <Product>Athenex Whimclean Multitenancy Abstractions</Product>
     <Title>Athenex Whimclean Multitenancy Abstractions</Title>
     <Description>Dependency-free multitenancy contracts for tenant-owned models, requested and authorized tenant context, and tenant access validation.</Description>
