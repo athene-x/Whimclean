@@ -2,15 +2,16 @@
 
 .NET 10 building blocks for domain-driven design, application-layer concerns, provider-neutral EF Core, PostgreSQL, optional multitenancy, and FastEndpoints APIs. Authentication is bring-your-own: applications authenticate with an external identity provider (Keycloak, Microsoft Entra ID, Auth0, or ASP.NET Core Identity wired directly) and Whimclean consumes the resulting principal through `ICurrentUser<TUserId>`. The repository produces these packages:
 
-- [`Athenex.Whimclean.Domain`](Athenex.Whimclean.Domain/README.md) provides entities, aggregate roots, domain events, auditing, soft deletion, and operation results.
-- [`Athenex.Whimclean.Application`](Athenex.Whimclean.Application/README.md) provides current-context contracts, email abstractions, pagination models, persistence contracts, and validated query options. It depends on `Athenex.Whimclean.Domain`.
-- [`Athenex.Whimclean.Infrastructure`](Athenex.Whimclean.Infrastructure/README.md) provides provider-neutral audit actor resolution and domain-event dispatch contracts. It depends on `Athenex.Whimclean.Domain`.
-- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore`](Athenex.Whimclean.Infrastructure.EntityFrameworkCore/README.md) provides required current-user writes, auditing, named soft-delete filters, concurrency handling, asynchronous domain-event dispatch, and common `DbContext`/`IUnitOfWork` registration. It depends on `Application`, `Infrastructure`, and EF Core, but no database provider.
-- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL`](Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/README.md) provides only the Npgsql dependency and PostgreSQL registration. It depends on `Infrastructure.EntityFrameworkCore`.
-- [`Athenex.Whimclean.Api.FastEndpoints`](Athenex.Whimclean.Api.FastEndpoints/README.md) provides FastEndpoints and OpenAPI registration, a consistent API error contract, exception handling, empty-status handling, and result-to-HTTP mapping. It depends on `Athenex.Whimclean.Application`.
-- [`Athenex.Whimclean.Multitenancy.Abstractions`](Athenex.Whimclean.Multitenancy.Abstractions/README.md) optionally provides tenant marker/current-context contracts, access validation, and tenant boundary exceptions. It has no package dependencies.
-- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy`](Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/README.md) optionally adds fail-closed tenant filters and write validation to the provider-neutral EF Core context.
-- [`Athenex.Whimclean.Api.FastEndpoints.Multitenancy`](Athenex.Whimclean.Api.FastEndpoints.Multitenancy/README.md) optionally resolves an untrusted requested tenant and establishes the current tenant only after a consumer-owned membership validator authorizes it.
+- [`Athenex.Whimclean.Domain`](src/Athenex.Whimclean.Domain/README.md) provides entities, aggregate roots, domain events, auditing, soft deletion, and operation results.
+- [`Athenex.Whimclean.Application`](src/Athenex.Whimclean.Application/README.md) provides current-context contracts, email abstractions, pagination models, persistence contracts, and validated query options. It depends on `Athenex.Whimclean.Domain`.
+- [`Athenex.Whimclean.Infrastructure`](src/Athenex.Whimclean.Infrastructure/README.md) provides provider-neutral audit actor resolution and the in-process domain-event pipeline. It depends on `Athenex.Whimclean.Domain`.
+- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore/README.md) provides required current-user writes, auditing, named soft-delete filters, concurrency handling, asynchronous domain-event dispatch, and common `DbContext`/`IUnitOfWork` registration. It depends on `Application`, `Infrastructure`, and EF Core, but no database provider.
+- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/README.md) provides only the Npgsql dependency and PostgreSQL registration. It depends on `Infrastructure.EntityFrameworkCore`.
+- [`Athenex.Whimclean.Api.AspNetCore`](src/Athenex.Whimclean.Api.AspNetCore/README.md) provides the framework-neutral API conventions: a consistent error contract, exception handling, status-code responses, result-to-HTTP mapping, and claims-based current-user resolution. It depends on `Athenex.Whimclean.Application`.
+- [`Athenex.Whimclean.Api.FastEndpoints`](src/Athenex.Whimclean.Api.FastEndpoints/README.md) provides FastEndpoints and OpenAPI registration with validation responses over the shared error contract. It depends on `Api.AspNetCore`.
+- [`Athenex.Whimclean.Multitenancy.Abstractions`](src/Athenex.Whimclean.Multitenancy.Abstractions/README.md) optionally provides tenant marker/current-context contracts, access validation, and tenant boundary exceptions. It has no package dependencies.
+- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/README.md) optionally adds fail-closed tenant filters and write validation to the provider-neutral EF Core context.
+- [`Athenex.Whimclean.Api.AspNetCore.Multitenancy`](src/Athenex.Whimclean.Api.AspNetCore.Multitenancy/README.md) optionally resolves an untrusted requested tenant and establishes the current tenant only after a consumer-owned membership validator authorizes it. It works with FastEndpoints or Minimal APIs alike.
 
 ## Installation
 
@@ -20,10 +21,11 @@ dotnet add package Athenex.Whimclean.Application --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL --version 0.1.0
+dotnet add package Athenex.Whimclean.Api.AspNetCore --version 0.1.0
 dotnet add package Athenex.Whimclean.Api.FastEndpoints --version 0.1.0
 dotnet add package Athenex.Whimclean.Multitenancy.Abstractions --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy --version 0.1.0
-dotnet add package Athenex.Whimclean.Api.FastEndpoints.Multitenancy --version 0.1.0
+dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy --version 0.1.0
 ```
 
 Install only the top-level packages an application uses. For example, a PostgreSQL API can reference `Infrastructure.EntityFrameworkCore.PostgreSQL` and `Api.FastEndpoints`; NuGet supplies their lower-level dependencies transitively.
@@ -34,8 +36,9 @@ Install only the top-level packages an application uses. For example, a PostgreS
 | --- | --- |
 | Domain and application contracts only | `Domain`, `Application` |
 | PostgreSQL business API | `Infrastructure.EntityFrameworkCore.PostgreSQL`, `Api.FastEndpoints` |
+| Minimal APIs instead of FastEndpoints | `Infrastructure.EntityFrameworkCore.PostgreSQL`, `Api.AspNetCore` |
 | Add tenant-aware EF isolation | previous packages plus `Infrastructure.EntityFrameworkCore.Multitenancy` |
-| Add HTTP tenant resolution and membership authorization | previous packages plus `Api.FastEndpoints.Multitenancy` |
+| Add HTTP tenant resolution and membership authorization | previous packages plus `Api.AspNetCore.Multitenancy` |
 
 Each package directory contains a focused README with installation, responsibility boundaries, and usage examples. The remainder of this root guide shows how the packages compose in one application.
 
@@ -54,8 +57,12 @@ Infrastructure.EntityFrameworkCore.Multitenancy
     -> Infrastructure.EntityFrameworkCore
     -> Multitenancy.Abstractions
 
-Api.FastEndpoints.Multitenancy
-    -> Api.FastEndpoints
+Api.FastEndpoints
+    -> Api.AspNetCore
+        -> Application
+
+Api.AspNetCore.Multitenancy
+    -> Api.AspNetCore
     -> Multitenancy.Abstractions
 ```
 
@@ -375,6 +382,6 @@ Infrastructure boundary exceptions and empty authorization/routing responses use
 | Empty 404 response | 404 | `Resource.NotFound` |
 | Unexpected exception | 500 | `Server.UnexpectedError` |
 
-Installing and registering `Api.FastEndpoints.Multitenancy` adds `CurrentTenantRequiredException` → 403 `Tenancy.CurrentTenantRequired` and `TenantAccessViolationException` → 403 `Tenancy.AccessDenied` without coupling the base FastEndpoints package to multitenancy.
+Installing and registering `Api.AspNetCore.Multitenancy` adds `CurrentTenantRequiredException` → 403 `Tenancy.CurrentTenantRequired` and `TenantAccessViolationException` → 403 `Tenancy.AccessDenied` without coupling the base API packages to multitenancy.
 
 Unexpected exception details are logged but are not returned to clients.
