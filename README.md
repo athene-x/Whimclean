@@ -1,13 +1,12 @@
 # Athenex.Whimclean
 
-.NET 10 building blocks for domain-driven design, application-layer concerns, provider-neutral EF Core, PostgreSQL, optional ASP.NET Core Identity, optional multitenancy, and FastEndpoints APIs. The repository produces ten packages:
+.NET 10 building blocks for domain-driven design, application-layer concerns, provider-neutral EF Core, PostgreSQL, optional multitenancy, and FastEndpoints APIs. Authentication is bring-your-own: applications authenticate with an external identity provider (Keycloak, Microsoft Entra ID, Auth0, or ASP.NET Core Identity wired directly) and Whimclean consumes the resulting principal through `ICurrentUser<TUserId>`. The repository produces these packages:
 
 - [`Athenex.Whimclean.Domain`](Athenex.Whimclean.Domain/README.md) provides entities, aggregate roots, domain events, auditing, soft deletion, and operation results.
 - [`Athenex.Whimclean.Application`](Athenex.Whimclean.Application/README.md) provides current-context contracts, email abstractions, pagination models, persistence contracts, and validated query options. It depends on `Athenex.Whimclean.Domain`.
 - [`Athenex.Whimclean.Infrastructure`](Athenex.Whimclean.Infrastructure/README.md) provides provider-neutral audit actor resolution and domain-event dispatch contracts. It depends on `Athenex.Whimclean.Domain`.
 - [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore`](Athenex.Whimclean.Infrastructure.EntityFrameworkCore/README.md) provides required current-user writes, auditing, named soft-delete filters, concurrency handling, asynchronous domain-event dispatch, and common `DbContext`/`IUnitOfWork` registration. It depends on `Application`, `Infrastructure`, and EF Core, but no database provider.
 - [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL`](Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/README.md) provides only the Npgsql dependency and PostgreSQL registration. It depends on `Infrastructure.EntityFrameworkCore`.
-- [`Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore`](Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore/README.md) optionally provides an ASP.NET Core Identity context and `UserManager`/`SignInManager` registration. It depends on `Infrastructure.EntityFrameworkCore`, but no database provider.
 - [`Athenex.Whimclean.Api.FastEndpoints`](Athenex.Whimclean.Api.FastEndpoints/README.md) provides FastEndpoints and OpenAPI registration, a consistent API error contract, exception handling, empty-status handling, and result-to-HTTP mapping. It depends on `Athenex.Whimclean.Application`.
 - [`Athenex.Whimclean.Multitenancy.Abstractions`](Athenex.Whimclean.Multitenancy.Abstractions/README.md) optionally provides tenant marker/current-context contracts, access validation, and tenant boundary exceptions. It has no package dependencies.
 - [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy`](Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/README.md) optionally adds fail-closed tenant filters and write validation to the provider-neutral EF Core context.
@@ -21,7 +20,6 @@ dotnet add package Athenex.Whimclean.Application --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL --version 0.1.0
-dotnet add package Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore --version 0.1.0
 dotnet add package Athenex.Whimclean.Api.FastEndpoints --version 0.1.0
 dotnet add package Athenex.Whimclean.Multitenancy.Abstractions --version 0.1.0
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy --version 0.1.0
@@ -36,7 +34,6 @@ Install only the top-level packages an application uses. For example, a PostgreS
 | --- | --- |
 | Domain and application contracts only | `Domain`, `Application` |
 | PostgreSQL business API | `Infrastructure.EntityFrameworkCore.PostgreSQL`, `Api.FastEndpoints` |
-| Add ASP.NET Core Identity | previous packages plus `Infrastructure.AspNetCoreIdentity.EntityFrameworkCore` |
 | Add tenant-aware EF isolation | previous packages plus `Infrastructure.EntityFrameworkCore.Multitenancy` |
 | Add HTTP tenant resolution and membership authorization | previous packages plus `Api.FastEndpoints.Multitenancy` |
 
@@ -52,9 +49,6 @@ Infrastructure.EntityFrameworkCore.PostgreSQL
         -> Infrastructure
         -> Application
             -> Domain
-
-Infrastructure.AspNetCoreIdentity.EntityFrameworkCore
-    -> Infrastructure.EntityFrameworkCore
 
 Infrastructure.EntityFrameworkCore.Multitenancy
     -> Infrastructure.EntityFrameworkCore
@@ -193,7 +187,7 @@ Register the current-user implementation and domain-event dispatcher. `NullableA
 
 ```csharp
 services.AddSingleton(TimeProvider.System);
-services.AddScoped<ICurrentUser<Guid>, HttpCurrentUser>();
+services.AddClaimsCurrentUser<Guid>();
 services.AddSingleton<
     IAuditActorResolver<Guid, Guid?>,
     NullableAuditActorResolver<Guid>>();
@@ -218,61 +212,25 @@ services.AddEntityFrameworkCoreDbContext<ApplicationDbContext>((_, options) =>
 
 This retains the same `AuditableDbContext`, soft-delete filters, concurrency boundary, domain-event dispatch, and `IUnitOfWork` registration. Add the optional EF multitenancy package when tenant isolation is required. Only the provider configuration changes.
 
-### Optional ASP.NET Core Identity
+### Authentication and the current user
 
-Keep authentication storage separate from the business context. The authentication user remains an infrastructure model and does not need to become a domain entity:
+Whimclean does not store users, credentials, or tokens. Authenticate with an external identity provider (Keycloak, Microsoft Entra ID, Auth0) or wire ASP.NET Core Identity directly against Microsoft's own APIs; either way, the library consumes only the authenticated principal through `ICurrentUser<TUserId>`.
 
-```csharp
-using Microsoft.AspNetCore.Identity;
-
-public sealed class ApplicationUser : IdentityUser<Guid>
-{
-    public string DisplayName { get; set; } = string.Empty;
-}
-```
-
-Create a dedicated Identity context:
+For any scheme that populates `HttpContext.User`, `Api.AspNetCore` supplies the claims-based implementation:
 
 ```csharp
-using Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.Persistence;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-
-public sealed class AuthenticationDbContext(
-    DbContextOptions<AuthenticationDbContext> options)
-    : IdentityAuthenticationDbContext<
-        ApplicationUser,
-        IdentityRole<Guid>,
-        Guid>(options);
-```
-
-Register both contexts. `AddPostgreSqlContext` is for an ordinary framework-owned EF context; `AddPostgreSqlDbContext` additionally registers the business context as `IUnitOfWork`:
-
-```csharp
-using Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore;
-
-services.AddPostgreSqlContext<AuthenticationDbContext>(
-    identityConnectionString,
-    postgreSql => postgreSql.MigrationsAssembly(
-        "MyApp.Migrations.PostgreSQL"));
-
-services.AddEntityFrameworkCoreIdentity<
-    ApplicationUser,
-    IdentityRole<Guid>,
-    AuthenticationDbContext>(options =>
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        options.User.RequireUniqueEmail = true;
-        options.SignIn.RequireConfirmedEmail = true;
-        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Authority = "https://keycloak.example.com/realms/whimclean";
+        options.Audience = "whimclean-api";
     });
 
-services.AddPostgreSqlDbContext<ApplicationDbContext>(
-    applicationConnectionString);
+builder.Services.AddClaimsCurrentUser<Guid>();
 ```
 
-The Identity registration adds its EF stores, default token providers, `UserManager<ApplicationUser>`, and `SignInManager<ApplicationUser>`. Use `UserManager` inside an infrastructure account adapter and use `SignInManager` at the API authentication boundary. Domain and application code should continue to depend on focused account contracts and `ICurrentUser<TUserId>`, not ASP.NET Core Identity types.
-
-Identity and the business context may use the same PostgreSQL database, but keep their migrations separately identifiable by context. The package does not add OpenIddict or issue standard OAuth/OIDC tokens. Add an authorization server as a separate optional boundary only when the application needs standards-based SSO, multiple clients, or multiple APIs.
+The default claim type is `ClaimTypes.NameIdentifier`; pass `options => options.ClaimType = "sub"` when inbound claim mapping is disabled. Registration uses `TryAddScoped`, so an application-supplied `ICurrentUser<TUserId>` wins.
 
 Every added, modified, or deleted record requires `ICurrentUser<TUserId>` to provide a user, including records that do not implement an audit interface. Background jobs should register an explicit system-user implementation instead of silently bypassing the write boundary. `IdentityAuditActorResolver<TActor>` is available when the current-user ID and stored actor use the same non-null type.
 

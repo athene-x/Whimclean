@@ -9,7 +9,6 @@
     <Project Path="src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.csproj" />
     <Project Path="src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.csproj" />
     <Project Path="src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.csproj" />
-    <Project Path="src/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.csproj" />
   </Folder>
   <Folder Name="/extensions/api/">
     <Project Path="src/Athenex.Whimclean.Api.AspNetCore/Athenex.Whimclean.Api.AspNetCore.csproj" />
@@ -23,7 +22,6 @@
     <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests.csproj" />
-    <Project Path="tests/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.Tests/Athenex.Whimclean.Infrastructure.AspNetCoreIdentity.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Tests/Athenex.Whimclean.Api.AspNetCore.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.FastEndpoints.Tests/Athenex.Whimclean.Api.FastEndpoints.Tests.csproj" />
