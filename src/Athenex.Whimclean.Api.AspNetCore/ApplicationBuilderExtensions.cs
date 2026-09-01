@@ -1,20 +1,27 @@
-using System.Text.Json;
-using Athenex.Whimclean.Api.FastEndpoints.Errors;
-using FastEndpoints;
+using Athenex.Whimclean.Api.AspNetCore.Errors;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
-namespace Athenex.Whimclean.Api.FastEndpoints;
+namespace Athenex.Whimclean.Api.AspNetCore;
 
+/// <summary>
+/// Pipeline configuration for the framework-neutral API error-handling
+/// building block.
+/// </summary>
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseFastEndpointsApi(
-        this IApplicationBuilder app,
-        string routePrefix = "api/v1",
-        Action<Config>? configure = null)
+    /// <summary>
+    /// Adds exception handling (backed by <see cref="ApiExceptionHandler"/>)
+    /// and status-code pages that give 401, 403, and 404 responses that
+    /// ended without a body a consistent <see cref="ApiErrorResponse"/>
+    /// JSON body. Requires the services added by
+    /// <see cref="DependencyInjection.AddApiErrorHandling"/>.
+    /// </summary>
+    /// <param name="app">The application pipeline to configure.</param>
+    /// <returns>The same builder, for chaining.</returns>
+    public static IApplicationBuilder UseApiErrorHandling(
+        this IApplicationBuilder app)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(routePrefix);
-
         app.UseExceptionHandler();
         app.UseStatusCodePages(async statusCodeContext =>
         {
@@ -39,25 +46,6 @@ public static class ApplicationBuilderExtensions
                     error,
                     statusCodeContext.HttpContext.RequestAborted);
             }
-        });
-
-        app.UseFastEndpoints(options =>
-        {
-            options.Endpoints.RoutePrefix = routePrefix;
-            options.Errors.ProducesMetadataType = typeof(ApiErrorResponse);
-            options.Errors.ResponseBuilder = (failures, _, _) =>
-                new ApiErrorResponse(
-                    "Validation.Failed",
-                    "One or more validation errors occurred.",
-                    failures
-                        .Select(failure => new ApiErrorDetail(
-                            failure.ErrorCode,
-                            failure.ErrorMessage,
-                            JsonNamingPolicy.CamelCase.ConvertName(
-                                failure.PropertyName)))
-                        .ToArray());
-
-            configure?.Invoke(options);
         });
 
         return app;

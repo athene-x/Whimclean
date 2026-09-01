@@ -1,11 +1,11 @@
 using System.Text.Json;
-using Athenex.Whimclean.Api.FastEndpoints.Errors;
+using Athenex.Whimclean.Api.AspNetCore.Errors;
 using Athenex.Whimclean.Application.Context;
 using Athenex.Whimclean.Application.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Athenex.Whimclean.Api.FastEndpoints.Tests.Errors;
+namespace Athenex.Whimclean.Api.AspNetCore.Tests.Errors;
 
 public sealed class ApiExceptionHandlerTests
 {

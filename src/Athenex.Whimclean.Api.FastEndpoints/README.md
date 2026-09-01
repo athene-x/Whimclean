@@ -1,6 +1,6 @@
 # Athenex.Whimclean.Api.FastEndpoints
 
-FastEndpoints conventions for OpenAPI, validation errors, status-code errors, application results, and boundary exceptions.
+FastEndpoints adapter for the Whimclean API conventions: endpoint registration, OpenAPI, and validation responses. The error contract, exception handling, status-code responses, and result mapping live in `Athenex.Whimclean.Api.AspNetCore` (referenced by this package), so they stay identical if an application later switches to Minimal APIs.
 
 ## Install
 

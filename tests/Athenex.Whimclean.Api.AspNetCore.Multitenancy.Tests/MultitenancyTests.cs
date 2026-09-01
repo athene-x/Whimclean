@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
-namespace Athenex.Whimclean.Api.FastEndpoints.Multitenancy.Tests;
+namespace Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests;
 
 public sealed class MultitenancyTests
 {
@@ -24,6 +24,23 @@ public sealed class MultitenancyTests
 
         Assert.True(resolved);
         Assert.Equal(tenantId, resolvedTenantId);
+    }
+
+    [Fact]
+    public void HeaderResolver_RejectsRepeatedTenantHeader()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers["X-Tenant-Id"] = new[]
+        {
+            Guid.NewGuid().ToString(),
+            Guid.NewGuid().ToString()
+        };
+        var resolver = new HeaderRequestedTenantResolver<Guid>(
+            Options.Create(new HeaderTenantResolutionOptions()));
+
+        var resolved = resolver.TryResolve(context, out _);
+
+        Assert.False(resolved);
     }
 
     [Fact]

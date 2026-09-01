@@ -1,14 +1,14 @@
-# Athenex.Whimclean.Api.FastEndpoints.Multitenancy
+# Athenex.Whimclean.Api.AspNetCore.Multitenancy
 
 Optional ASP.NET Core tenant resolution and membership authorization for Whimclean APIs.
 
 ## Install
 
 ```shell
-dotnet add package Athenex.Whimclean.Api.FastEndpoints.Multitenancy
+dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
 ```
 
-The package depends on `Api.FastEndpoints` for consistent tenant error responses and on the dependency-free multitenancy contracts.
+The package depends on `Api.AspNetCore` for consistent tenant error responses and on the dependency-free multitenancy contracts. It contains no FastEndpoints code and works with FastEndpoints or Minimal APIs alike.
 
 ## Implement membership validation
 
@@ -40,7 +40,7 @@ Include tenant state, membership expiry, suspension, or entitlement checks here 
 ## Register the API integration
 
 ```csharp
-using Athenex.Whimclean.Api.FastEndpoints.Multitenancy;
+using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
 
 builder.Services.AddFastEndpointsApi();
 builder.Services.AddAspNetCoreMultitenancy<Guid, Guid>();
