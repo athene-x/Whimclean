@@ -4,7 +4,7 @@ namespace Athenex.Whimclean.Infrastructure.EntityFrameworkCore;
 
 /// <summary>
 /// Query extensions for working around the global soft-delete filter
-/// applied by the Whimclean DbContexts.
+/// applied by the library's DbContexts.
 /// </summary>
 public static class SoftDeleteQueryableExtensions
 {
@@ -21,6 +21,6 @@ public static class SoftDeleteQueryableExtensions
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        return query.IgnoreQueryFilters([WhimcleanQueryFilters.SoftDelete]);
+        return query.IgnoreQueryFilters([QueryFilterNames.SoftDelete]);
     }
 }

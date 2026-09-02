@@ -155,7 +155,7 @@ What the context enforces:
 - Administrative queries can disable one filter at a time without dropping the other:
 
 ```csharp
-var acrossTenants = dbContext.Orders.IgnoreQueryFilters([WhimcleanQueryFilters.Tenant]);
+var acrossTenants = dbContext.Orders.IgnoreQueryFilters([QueryFilterNames.Tenant]);
 var includingDeleted = dbContext.Orders.IncludeSoftDeleted();
 ```
 

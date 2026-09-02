@@ -11,7 +11,7 @@ namespace Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Pers
 /// <summary>
 /// <see cref="AuditableDbContext{TUserId, TActor}" /> that adds tenant
 /// isolation. Reads: the named tenant query filter
-/// (<see cref="WhimcleanQueryFilters.Tenant" />) makes
+/// (<see cref="QueryFilterNames.Tenant" />) makes
 /// <see cref="IMultiTenant{TTenantId}" /> rows visible only when a current
 /// tenant is established AND matches the row — with no tenant the filter
 /// fails closed and returns nothing. Writes: any change to an
@@ -78,7 +78,7 @@ public abstract class MultiTenantDbContext<TUserId, TActor, TTenantId>(
 
     /// <summary>
     /// Sealed: installs the named tenant query filter
-    /// (<see cref="WhimcleanQueryFilters.Tenant" />) on root
+    /// (<see cref="QueryFilterNames.Tenant" />) on root
     /// <see cref="IMultiTenant{TTenantId}" /> entity types.
     /// </summary>
     protected sealed override void ConfigureAdditionalInfrastructureModel(
@@ -174,7 +174,7 @@ public abstract class MultiTenantDbContext<TUserId, TActor, TTenantId>(
                 belongsToCurrentTenant);
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(
-                WhimcleanQueryFilters.Tenant,
+                QueryFilterNames.Tenant,
                 Expression.Lambda(filterBody, parameter));
         }
     }

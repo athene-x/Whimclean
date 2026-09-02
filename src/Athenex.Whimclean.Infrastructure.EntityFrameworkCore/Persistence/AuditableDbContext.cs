@@ -20,7 +20,7 @@ namespace Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence;
 /// <see cref="PersistenceConcurrencyException" />, and dispatches queued
 /// domain events once the commit has succeeded. It also applies the named
 /// soft-delete query filter
-/// (<see cref="WhimcleanQueryFilters.SoftDelete" />) to root
+/// (<see cref="QueryFilterNames.SoftDelete" />) to root
 /// <see cref="ISoftDelete{TActor}" /> entity types, so deleted rows are
 /// hidden from queries by default.
 /// </summary>
@@ -349,7 +349,7 @@ public abstract class AuditableDbContext<TUserId, TActor>(
             var filterBody = Expression.Not(isDeleted);
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(
-                WhimcleanQueryFilters.SoftDelete,
+                QueryFilterNames.SoftDelete,
                 Expression.Lambda(filterBody, parameter));
         }
     }
