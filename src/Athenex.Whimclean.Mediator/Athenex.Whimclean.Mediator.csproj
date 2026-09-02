@@ -7,9 +7,9 @@
     <PackageTags>mediator;cqrs;pipeline-behavior;domain-events;unit-of-work;notifications</PackageTags>
     <PackageReleaseNotes>Adds optional Mediator integration with a command unit-of-work pipeline behavior and a notification-based domain event dispatcher.</PackageReleaseNotes>
 
-    <!-- First release has no published baseline to validate against;
-         remove this override once the package ships. -->
-    <EnablePackageValidation>false</EnablePackageValidation>
+    <!-- This package first shipped in 1.1.0, so it validates against that
+         instead of the library-wide 1.0.0 baseline. -->
+    <PackageValidationBaselineVersion>1.1.0</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>
