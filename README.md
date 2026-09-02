@@ -15,17 +15,45 @@
 
 ## Installation
 
+### Package feed
+
+The packages are published to the athene-x [GitHub Packages](https://github.com/orgs/athene-x/packages) NuGet feed, not to nuget.org. Consuming them requires membership in the athene-x organization:
+
+1. Create a [personal access token (classic)](https://github.com/settings/tokens) with the `read:packages` scope.
+2. Register the feed once per machine:
+
+   ```shell
+   dotnet nuget add source \
+     --username YOUR_GITHUB_USERNAME \
+     --password YOUR_GITHUB_TOKEN \
+     --store-password-in-clear-text \
+     --name github \
+     "https://nuget.pkg.github.com/athene-x/index.json"
+   ```
+
+3. If the consuming repository uses `packageSourceMapping` in its `nuget.config`, adding the source is not enough — restore refuses to consider unmapped sources. Also map the package prefix:
+
+   ```xml
+   <packageSourceMapping>
+     <packageSource key="github">
+       <package pattern="Athenex.Whimclean.*" />
+     </packageSource>
+   </packageSourceMapping>
+   ```
+
+### Packages
+
 ```shell
-dotnet add package Athenex.Whimclean.Domain --version 0.1.0
-dotnet add package Athenex.Whimclean.Application --version 0.1.0
-dotnet add package Athenex.Whimclean.Infrastructure --version 0.1.0
-dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore --version 0.1.0
-dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL --version 0.1.0
-dotnet add package Athenex.Whimclean.Api.AspNetCore --version 0.1.0
-dotnet add package Athenex.Whimclean.Api.FastEndpoints --version 0.1.0
-dotnet add package Athenex.Whimclean.Multitenancy.Abstractions --version 0.1.0
-dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy --version 0.1.0
-dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy --version 0.1.0
+dotnet add package Athenex.Whimclean.Domain
+dotnet add package Athenex.Whimclean.Application
+dotnet add package Athenex.Whimclean.Infrastructure
+dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore
+dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL
+dotnet add package Athenex.Whimclean.Api.AspNetCore
+dotnet add package Athenex.Whimclean.Api.FastEndpoints
+dotnet add package Athenex.Whimclean.Multitenancy.Abstractions
+dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy
+dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
 ```
 
 Install only the top-level packages an application uses. For example, a PostgreSQL API can reference `Infrastructure.EntityFrameworkCore.PostgreSQL` and `Api.FastEndpoints`; NuGet supplies their lower-level dependencies transitively.
