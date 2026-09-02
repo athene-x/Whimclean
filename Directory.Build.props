@@ -24,6 +24,7 @@
          in the assemblies instead of shipping .snupkg packages. -->
     <DebugType>embedded</DebugType>
     <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
