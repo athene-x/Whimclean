@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean Mediator</Product>
+    <Title>Athenex Whimclean Mediator</Title>
+    <Description>Optional Mediator (martinothamar/Mediator) integration: a command unit-of-work pipeline behavior and domain-event delivery as mediator notifications.</Description>
+    <PackageTags>mediator;cqrs;pipeline-behavior;domain-events;unit-of-work;notifications</PackageTags>
+    <PackageReleaseNotes>Adds optional Mediator integration with a command unit-of-work pipeline behavior and a notification-based domain event dispatcher.</PackageReleaseNotes>
+
+    <!-- First release has no published baseline to validate against;
+         remove this override once the package ships. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mediator.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Application/Athenex.Whimclean.Application.csproj" />
+    <ProjectReference Include="../Athenex.Whimclean.Infrastructure/Athenex.Whimclean.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

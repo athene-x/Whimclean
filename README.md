@@ -9,6 +9,7 @@
 - [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/README.md) provides only the Npgsql dependency and PostgreSQL registration. It depends on `Infrastructure.EntityFrameworkCore`.
 - [`Athenex.Whimclean.Api.AspNetCore`](src/Athenex.Whimclean.Api.AspNetCore/README.md) provides the framework-neutral API conventions: a consistent error contract, exception handling, status-code responses, result-to-HTTP mapping, and claims-based current-user resolution. It depends on `Athenex.Whimclean.Application`.
 - [`Athenex.Whimclean.Api.FastEndpoints`](src/Athenex.Whimclean.Api.FastEndpoints/README.md) provides FastEndpoints and OpenAPI registration with validation responses over the shared error contract. It depends on `Api.AspNetCore`.
+- [`Athenex.Whimclean.Mediator`](src/Athenex.Whimclean.Mediator/README.md) optionally integrates [Mediator](https://github.com/martinothamar/Mediator): a pipeline behavior committing the unit of work after each command, and domain-event delivery as mediator notifications. It depends on `Application`, `Infrastructure`, and `Mediator.Abstractions`; the application supplies `Mediator.SourceGenerator`.
 - [`Athenex.Whimclean.Multitenancy.Abstractions`](src/Athenex.Whimclean.Multitenancy.Abstractions/README.md) optionally provides tenant marker/current-context contracts, access validation, and tenant boundary exceptions. It has no package dependencies.
 - [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/README.md) optionally adds fail-closed tenant filters and write validation to the provider-neutral EF Core context.
 - [`Athenex.Whimclean.Api.AspNetCore.Multitenancy`](src/Athenex.Whimclean.Api.AspNetCore.Multitenancy/README.md) optionally resolves an untrusted requested tenant and establishes the current tenant only after a consumer-owned membership validator authorizes it. It works with FastEndpoints or Minimal APIs alike.
@@ -51,6 +52,7 @@ dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL
 dotnet add package Athenex.Whimclean.Api.AspNetCore
 dotnet add package Athenex.Whimclean.Api.FastEndpoints
+dotnet add package Athenex.Whimclean.Mediator
 dotnet add package Athenex.Whimclean.Multitenancy.Abstractions
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy
 dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
