@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>Athenex</Authors>
     <Company>Athenex</Company>
     <Copyright>Copyright © Athenex 2026</Copyright>

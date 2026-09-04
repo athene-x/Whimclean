@@ -8,14 +8,14 @@ public sealed class MediatorDomainEventDispatcherTests
     private readonly RecordingPublisher _publisher = new();
 
     [Fact]
-    public async Task DispatchAsync_WrapsEventInTypedNotification()
+    public async Task DispatchAsync_WrapsEventInNotification()
     {
         var dispatcher = new MediatorDomainEventDispatcher(_publisher);
         var domainEvent = new TestEvent();
 
         await dispatcher.DispatchAsync(domainEvent);
 
-        var notification = Assert.IsType<DomainEventNotification<TestEvent>>(
+        var notification = Assert.IsType<DomainEventNotification>(
             Assert.Single(_publisher.Published));
         Assert.Same(domainEvent, notification.DomainEvent);
     }

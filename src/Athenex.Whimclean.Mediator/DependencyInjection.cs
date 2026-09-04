@@ -15,7 +15,7 @@ public static class DependencyInjection
     /// <summary>
     /// Registers <see cref="MediatorDomainEventDispatcher" /> as the
     /// scoped <see cref="IDomainEventDispatcher" />, so domain events are
-    /// delivered as <see cref="DomainEventNotification{TEvent}" />
+    /// delivered as <see cref="DomainEventNotification" />
     /// notifications. Uses TryAdd semantics: an already-registered
     /// dispatcher is left in place, so call this before any registration
     /// of the default dispatcher.

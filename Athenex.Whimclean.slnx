@@ -26,6 +26,7 @@
     <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Mediator.Tests/Athenex.Whimclean.Mediator.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Mediator.Generator.Tests/Athenex.Whimclean.Mediator.Generator.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Tests/Athenex.Whimclean.Api.AspNetCore.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.FastEndpoints.Tests/Athenex.Whimclean.Api.FastEndpoints.Tests.csproj" />
