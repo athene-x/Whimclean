@@ -3,9 +3,9 @@
   <PropertyGroup>
     <Product>Athenex Whimclean FastEndpoints API</Product>
     <Title>Athenex Whimclean FastEndpoints API</Title>
-    <Description>FastEndpoints adapter for the Whimclean ASP.NET Core API conventions: endpoint registration, OpenAPI, and validation responses over the shared error contract.</Description>
+    <Description>FastEndpoints adapter for the primary Whimclean ASP.NET Core API package: endpoint registration, FastEndpoints OpenAPI, validation responses over the shared error contract, and whole-value binding of the shared list query filters.</Description>
     <PackageTags>fastendpoints;api;openapi;validation;exception-handling;result;error-handling</PackageTags>
-    <PackageReleaseNotes>Adds the list query request contract: ListQueryRequest, ListQueryRequestValidator with per-endpoint sort and filter allow-lists, and whole-value binding of repeated filters applied by UseFastEndpointsApi.</PackageReleaseNotes>
+    <PackageReleaseNotes>Thin adapter over Athenex.Whimclean.Api.AspNetCore: discovers validators derived from its ListQueryRequestValidator, renders validation failures through its shared mapper, applies whole-value binding of ListQueryRequest filters in UseFastEndpointsApi, and offers an AddFastEndpointsApi overload with an endpoint discovery hook.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

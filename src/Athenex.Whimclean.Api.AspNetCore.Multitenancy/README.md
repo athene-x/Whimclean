@@ -42,11 +42,11 @@ Include tenant state, membership expiry, suspension, or entitlement checks here 
 ## Register the API integration
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore;
 using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
-using Athenex.Whimclean.Api.FastEndpoints;
 using Athenex.Whimclean.Multitenancy;
 
-builder.Services.AddFastEndpointsApi();
+builder.Services.AddMinimalApi();
 builder.Services.AddAspNetCoreMultitenancy<Guid, Guid>();
 builder.Services.AddHeaderTenantResolution<Guid>(options =>
     options.HeaderName = "X-Tenant-Id");
@@ -74,29 +74,26 @@ Authentication must establish the user before tenant membership authorization ru
 app.UseAuthentication();
 app.UseTenantResolution<Guid>();
 app.UseAuthorization();
-app.UseFastEndpointsApi();
+app.UseMinimalApi();
 ```
+
+A FastEndpoints application registers `AddFastEndpointsApi` and calls `UseFastEndpointsApi` in the same positions.
 
 The resolver only records a requested tenant. `ICurrentTenant<Guid>` remains empty until the authenticated user passes the access validator.
 
 ## Protect tenant endpoints
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore;
 using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
-using FastEndpoints;
 
-public sealed class ListOrdersEndpoint : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Get("orders");
-        Policies(MultitenancyPolicies.TenantMember);
-    }
+var tenantApi = app.MapApiGroup()
+    .RequireAuthorization(MultitenancyPolicies.TenantMember);
 
-    public override Task HandleAsync(CancellationToken cancellationToken) =>
-        HttpContext.Response.SendOkAsync(cancellationToken);
-}
+tenantApi.MapGet("orders", () => Results.Ok());
 ```
+
+A FastEndpoints endpoint applies the same policy with `Policies(MultitenancyPolicies.TenantMember)` in its `Configure` method.
 
 Tenant-aware EF contexts resolved during the endpoint receive the authorized `ICurrentTenant<TTenantId>` from the same request scope.
 

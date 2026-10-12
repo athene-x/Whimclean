@@ -26,7 +26,7 @@
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy # case 1 only
 dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
-dotnet add package Athenex.Whimclean.Api.FastEndpoints # or use Minimal APIs with Api.AspNetCore
+dotnet add package Athenex.Whimclean.Api.AspNetCore     # Minimal APIs; or Api.FastEndpoints for the FastEndpoints adapter
 ```
 
 แพ็กเกจชั้นล่าง (`Domain`, `Application`, `Infrastructure`, `Multitenancy.Abstractions`) จะถูกติดตั้งมาโดยอ้อม
@@ -93,8 +93,8 @@ app.UseAuthorization();          // TenantMember policy validates and establishe
 ป้องกัน endpoint ของ tenant ด้วย policy ที่ให้มา:
 
 ```csharp
-Policies(MultitenancyPolicies.TenantMember); // FastEndpoints
-// or .RequireAuthorization(MultitenancyPolicies.TenantMember) on a Minimal API group
+app.MapApiGroup().RequireAuthorization(MultitenancyPolicies.TenantMember); // Minimal API group
+// or Policies(MultitenancyPolicies.TenantMember) in a FastEndpoints Configure method
 ```
 
 requested tenant (claim จาก transport ที่ยังไม่ได้ตรวจสอบ) และ current tenant (กำหนดขึ้นหลังจาก `ITenantAccessValidator` อนุมัติแล้วเท่านั้น) ถูกแยกเป็นคนละ interface โดยตั้งใจ — โค้ดที่ใช้ `ICurrentTenant<Guid>` จะไม่มีวันเห็นค่าที่ยังไม่ผ่านการตรวจสอบ resolver แบบ host, route หรือ claim สามารถแทนที่ `IRequestedTenantResolver<Guid>` ได้โดยไม่ต้องแตะต้องส่วนที่อยู่ด้านล่าง

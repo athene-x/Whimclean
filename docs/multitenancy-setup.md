@@ -26,7 +26,7 @@ The HTTP half of the setup — resolving the requested tenant, validating member
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL
 dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy # case 1 only
 dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
-dotnet add package Athenex.Whimclean.Api.FastEndpoints # or use Minimal APIs with Api.AspNetCore
+dotnet add package Athenex.Whimclean.Api.AspNetCore     # Minimal APIs; or Api.FastEndpoints for the FastEndpoints adapter
 ```
 
 Lower-level packages (`Domain`, `Application`, `Infrastructure`, `Multitenancy.Abstractions`) arrive transitively.
@@ -93,8 +93,8 @@ When the web tier forwards a tenant slug instead of an id, also call `builder.Se
 Protect tenant endpoints with the supplied policy:
 
 ```csharp
-Policies(MultitenancyPolicies.TenantMember); // FastEndpoints
-// or .RequireAuthorization(MultitenancyPolicies.TenantMember) on a Minimal API group
+app.MapApiGroup().RequireAuthorization(MultitenancyPolicies.TenantMember); // Minimal API group
+// or Policies(MultitenancyPolicies.TenantMember) in a FastEndpoints Configure method
 ```
 
 The requested tenant (an unverified transport claim) and the current tenant (established only after `ITenantAccessValidator` approves) are deliberately separate interfaces — code that consumes `ICurrentTenant<Guid>` never sees an unvalidated value. A host, route, or claim resolver can replace `IRequestedTenantResolver<Guid>` without touching anything below.

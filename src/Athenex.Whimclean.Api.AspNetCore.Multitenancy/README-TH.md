@@ -42,11 +42,11 @@ public sealed class TenantMembershipAccessValidator(
 ## ลงทะเบียนการเชื่อมต่อกับ API
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore;
 using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
-using Athenex.Whimclean.Api.FastEndpoints;
 using Athenex.Whimclean.Multitenancy;
 
-builder.Services.AddFastEndpointsApi();
+builder.Services.AddMinimalApi();
 builder.Services.AddAspNetCoreMultitenancy<Guid, Guid>();
 builder.Services.AddHeaderTenantResolution<Guid>(options =>
     options.HeaderName = "X-Tenant-Id");
@@ -74,29 +74,26 @@ authentication ต้องระบุผู้ใช้ก่อนที่�
 app.UseAuthentication();
 app.UseTenantResolution<Guid>();
 app.UseAuthorization();
-app.UseFastEndpointsApi();
+app.UseMinimalApi();
 ```
+
+แอปพลิเคชันแบบ FastEndpoints ลงทะเบียน `AddFastEndpointsApi` และเรียก `UseFastEndpointsApi` ในตำแหน่งเดียวกัน
 
 resolver เพียงบันทึก tenant ที่ถูกร้องขอ `ICurrentTenant<Guid>` ยังว่างอยู่จนกว่าผู้ใช้ที่ยืนยันตัวตนแล้วจะผ่าน access validator
 
 ## ป้องกัน endpoint ของ tenant
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore;
 using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
-using FastEndpoints;
 
-public sealed class ListOrdersEndpoint : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Get("orders");
-        Policies(MultitenancyPolicies.TenantMember);
-    }
+var tenantApi = app.MapApiGroup()
+    .RequireAuthorization(MultitenancyPolicies.TenantMember);
 
-    public override Task HandleAsync(CancellationToken cancellationToken) =>
-        HttpContext.Response.SendOkAsync(cancellationToken);
-}
+tenantApi.MapGet("orders", () => Results.Ok());
 ```
+
+endpoint ของ FastEndpoints ใช้ policy เดียวกันด้วย `Policies(MultitenancyPolicies.TenantMember)` ในเมธอด `Configure`
 
 EF context ที่รองรับ tenant ซึ่งถูก resolve ระหว่าง endpoint จะได้รับ `ICurrentTenant<TTenantId>` ที่ผ่านการอนุญาตแล้วจาก request scope เดียวกัน
 

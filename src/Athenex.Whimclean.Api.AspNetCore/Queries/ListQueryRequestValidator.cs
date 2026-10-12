@@ -1,18 +1,19 @@
 using Athenex.Whimclean.Application.Queries;
-using FastEndpoints;
 using FluentValidation;
 
-namespace Athenex.Whimclean.Api.FastEndpoints.Queries;
+namespace Athenex.Whimclean.Api.AspNetCore.Queries;
 
 /// <summary>
 /// Validates the shared list query parameters so that
 /// <see cref="ListQueryRequest.ToListQueryOptions" /> cannot throw, and
 /// lets each endpoint declare the sort and filter fields it supports.
-/// Derive a concrete validator per request type; FastEndpoints only
-/// registers concrete validators.
+/// Derive a concrete validator per request type: a Minimal API registers
+/// it through <c>AddApiValidatorsFromAssembly</c> and runs it with the
+/// <c>WithRequestValidation</c> endpoint filter; FastEndpoints discovers
+/// it as the request DTO's validator.
 /// </summary>
 /// <typeparam name="TRequest">Request type being validated.</typeparam>
-public abstract class ListQueryRequestValidator<TRequest> : Validator<TRequest>
+public abstract class ListQueryRequestValidator<TRequest> : AbstractValidator<TRequest>
     where TRequest : ListQueryRequest
 {
     private static readonly FilterOperator[] DefaultFilterOperators =

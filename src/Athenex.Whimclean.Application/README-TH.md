@@ -108,13 +108,13 @@ var invoice = new EmailMessage(
 | `filters` | `field:operator:value` หนึ่งรายการต่อพารามิเตอร์ที่ส่งซ้ำ | `filters=status:in:Active,Suspended` |
 | `page`, `size` | หมายเลขหน้าเริ่มที่หนึ่งและขนาดหน้า | `page=2&size=20` |
 
-operator ได้แก่ `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` และ `in` (ค่าคั่นด้วยจุลภาค); รหัส operator ไม่สนใจตัวพิมพ์เล็กใหญ่ `Parse`, `ParseSort` และ `ParseFilters` จะ throw `FormatException` เมื่อ input ไม่ถูกต้อง ส่วน `TryParseFilter` และ `TryParseSort` รายงานข้อผิดพลาดที่อ่านเข้าใจได้โดยไม่ throw ซึ่งแพ็กเกจ FastEndpoints ใช้สำหรับการตรวจสอบ
+operator ได้แก่ `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` และ `in` (ค่าคั่นด้วยจุลภาค); รหัส operator ไม่สนใจตัวพิมพ์เล็กใหญ่ `Parse`, `ParseSort` และ `ParseFilters` จะ throw `FormatException` เมื่อ input ไม่ถูกต้อง ส่วน `TryParseFilter` และ `TryParseSort` รายงานข้อผิดพลาดที่อ่านเข้าใจได้โดยไม่ throw ซึ่งแพ็กเกจ API ใช้สำหรับการตรวจสอบ
 
 ```csharp
 var options = ListQueryParser.Parse(searchTerm, sort, filters, page, size);
 ```
 
-`EnumFilter` (ใน `Athenex.Whimclean.Application.Queries`) แปลงค่าของ filter เป็นสมาชิกของ enum โดยไม่สนใจตัวพิมพ์เล็กใหญ่ และปฏิเสธค่าที่ไม่ได้นิยามไว้: `TryParse<TEnum>` จัดการค่าเดียว และ `Parse<TEnum>` เก็บเฉพาะสมาชิกที่ถูกต้องจากรายการ validator ของ API (`AllowEnumFilterField<TEnum>` ในแพ็กเกจ FastEndpoints) และ filter ฝั่ง persistence จึงเห็นตรงกันว่าชื่อใดถูกต้อง
+`EnumFilter` (ใน `Athenex.Whimclean.Application.Queries`) แปลงค่าของ filter เป็นสมาชิกของ enum โดยไม่สนใจตัวพิมพ์เล็กใหญ่ และปฏิเสธค่าที่ไม่ได้นิยามไว้: `TryParse<TEnum>` จัดการค่าเดียว และ `Parse<TEnum>` เก็บเฉพาะสมาชิกที่ถูกต้องจากรายการ validator ของ API (`AllowEnumFilterField<TEnum>` ใน `Athenex.Whimclean.Api.AspNetCore`) และ filter ฝั่ง persistence จึงเห็นตรงกันว่าชื่อใดถูกต้อง
 
 `WhereActive()` ใน `ActivatableQueryExtensions` กรอง `IQueryable<T>` หรือ `IEnumerable<T>` ของ entity ที่เป็น `IActivatable` ให้เหลือเฉพาะรายการที่ active
 

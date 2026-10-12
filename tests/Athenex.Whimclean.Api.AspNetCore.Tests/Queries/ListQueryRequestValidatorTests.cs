@@ -1,7 +1,7 @@
-using Athenex.Whimclean.Api.FastEndpoints.Queries;
+using Athenex.Whimclean.Api.AspNetCore.Queries;
 using Athenex.Whimclean.Application.Queries;
 
-namespace Athenex.Whimclean.Api.FastEndpoints.Tests.Queries;
+namespace Athenex.Whimclean.Api.AspNetCore.Tests.Queries;
 
 public sealed class ListQueryRequestValidatorTests
 {

@@ -1,10 +1,12 @@
+using Athenex.Whimclean.Api.AspNetCore.Queries;
 using FastEndpoints;
 using Microsoft.Extensions.Primitives;
 
 namespace Athenex.Whimclean.Api.FastEndpoints.Queries;
 
 /// <summary>
-/// Request binding adjustments for <see cref="ListQueryRequest" />.
+/// FastEndpoints binding adjustments for the shared
+/// <see cref="ListQueryRequest" /> contract.
 /// </summary>
 public static class ListQueryBinding
 {

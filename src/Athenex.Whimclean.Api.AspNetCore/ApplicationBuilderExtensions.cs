@@ -6,15 +6,60 @@ using Microsoft.AspNetCore.Http;
 namespace Athenex.Whimclean.Api.AspNetCore;
 
 /// <summary>
-/// Pipeline configuration for the framework-neutral API error-handling
-/// building block.
+/// Pipeline configuration for the Minimal API host and the API
+/// error-handling building block.
 /// </summary>
 public static class ApplicationBuilderExtensions
 {
     /// <summary>
+    /// Route pattern of the OpenAPI document mapped by
+    /// <see cref="UseMinimalApi"/> by default.
+    /// </summary>
+    public const string DefaultOpenApiRoutePattern = "/openapi/{documentName}.json";
+
+    /// <summary>
+    /// Configures the request pipeline for a Minimal API: the shared error
+    /// handling from <see cref="UseApiErrorHandling"/> plus the OpenAPI
+    /// document endpoint. Requires the services added by
+    /// <see cref="DependencyInjection.AddMinimalApi"/>. Map endpoints
+    /// afterwards through
+    /// <see cref="EndpointRouteBuilderExtensions.MapApiGroup"/>.
+    /// </summary>
+    /// <param name="app">The application to configure.</param>
+    /// <param name="openApiRoutePattern">
+    /// Route of the OpenAPI document; defaults to
+    /// <see cref="DefaultOpenApiRoutePattern"/>. Pass
+    /// <see langword="null"/> to leave the document unmapped, for example
+    /// to map it only in development.
+    /// </param>
+    /// <returns>The same application, for chaining.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="app"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="openApiRoutePattern"/> is empty or whitespace.
+    /// </exception>
+    public static WebApplication UseMinimalApi(
+        this WebApplication app,
+        string? openApiRoutePattern = DefaultOpenApiRoutePattern)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        app.UseApiErrorHandling();
+
+        if (openApiRoutePattern is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(openApiRoutePattern);
+            app.MapOpenApi(openApiRoutePattern);
+        }
+
+        return app;
+    }
+
+    /// <summary>
     /// Adds exception handling (backed by <see cref="ApiExceptionHandler"/>)
-    /// and status-code pages that give 401, 403, and 404 responses that
-    /// ended without a body a consistent <see cref="ApiErrorResponse"/>
+    /// and status-code pages that give 400, 401, 403, and 404 responses
+    /// that ended without a body a consistent <see cref="ApiErrorResponse"/>
     /// JSON body. Requires the services added by
     /// <see cref="DependencyInjection.AddApiErrorHandling"/>.
     /// </summary>
@@ -29,6 +74,9 @@ public static class ApplicationBuilderExtensions
             var response = statusCodeContext.HttpContext.Response;
             var error = response.StatusCode switch
             {
+                StatusCodes.Status400BadRequest => new ApiErrorResponse(
+                    "Request.Invalid",
+                    "The request is invalid."),
                 StatusCodes.Status401Unauthorized => new ApiErrorResponse(
                     "Authentication.Unauthorized",
                     "Authentication is required to access this resource."),

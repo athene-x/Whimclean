@@ -2,15 +2,36 @@
 
 [English](README.md)
 
-adapter ของ FastEndpoints สำหรับข้อตกลง API ของ Whimclean: การลงทะเบียน endpoint, OpenAPI และ response ของการตรวจสอบข้อมูล error contract, การจัดการ exception, response ตาม status code และการ map result อยู่ใน `Athenex.Whimclean.Api.AspNetCore` (ซึ่ง package นี้อ้างอิง) จึงยังเหมือนเดิมหากแอปพลิเคชันย้ายไปใช้ Minimal APIs ในภายหลัง
+adapter ของ FastEndpoints สำหรับ [`Athenex.Whimclean.Api.AspNetCore`](https://github.com/athene-x/Whimclean/blob/main/src/Athenex.Whimclean.Api.AspNetCore/README-TH.md) ซึ่งเป็นแพ็กเกจ API หลักของ Whimclean ติดตั้งในแอปพลิเคชันที่เขียน endpoint ด้วย FastEndpoints
 
-## ติดตั้ง
+adapter ดูแลเฉพาะส่วนที่เป็นของ FastEndpoints โดยเฉพาะ:
+
+- การลงทะเบียน FastEndpoints และการค้นหา endpoint รวมถึงการค้นหา validator ธรรมดาของ FluentValidation
+- เอกสาร OpenAPI ของ FastEndpoints
+- การแสดงผลความล้มเหลวของ validation ของ FastEndpoints เป็น error body ร่วม
+- การ bind filter ของ `ListQueryRequest` แบบทั้งค่า
+
+ส่วนที่เหลือมาจากแพ็กเกจหลักและทำงานเหมือนกันทั้งสองรูปแบบ: error body และการ map exception, response ตาม status code, การ map `Result`, สัญญา `ListQueryRequest` และ validator ของมัน, การ resolve ผู้ใช้ปัจจุบัน, health endpoint, rate limit และ options ที่ผ่านการตรวจสอบ
+
+## สารบัญ
+
+- [การติดตั้ง](#การติดตั้ง)
+- [เริ่มต้นใช้งาน](#เริ่มต้นใช้งาน)
+- [อ้างอิงการลงทะเบียน](#อ้างอิงการลงทะเบียน)
+- [OpenAPI](#openapi)
+- [การตรวจสอบข้อมูล](#การตรวจสอบข้อมูล)
+- [endpoint แบบรายการ](#endpoint-แบบรายการ)
+- [error response](#error-response)
+
+## การติดตั้ง
 
 ```shell
 dotnet add package Athenex.Whimclean.Api.FastEndpoints
 ```
 
-## ลงทะเบียน service และ middleware
+แพ็กเกจนี้อ้างอิง `Athenex.Whimclean.Api.AspNetCore`, `FastEndpoints` และ `FastEndpoints.OpenApi`
+
+## เริ่มต้นใช้งาน
 
 ```csharp
 using Athenex.Whimclean.Api.FastEndpoints;
@@ -21,16 +42,29 @@ builder.Services.AddFastEndpointsApi();
 
 var app = builder.Build();
 
-app.UseAuthentication();       // when authentication is configured
-app.UseAuthorization();        // when authorization is configured
+app.UseAuthentication();   // when authentication is configured
+app.UseAuthorization();    // when authorization is configured
 app.UseFastEndpointsApi();
 
 app.Run();
 ```
 
-`AddFastEndpointsApi` ลงทะเบียน FastEndpoints, การจัดการ error ร่วมจาก `AddApiErrorHandling` และเอกสาร OpenAPI `UseFastEndpointsApi` ใช้ route prefix เริ่มต้น `api/v1`, การจัดการ exception, response 401/403/404 ที่สม่ำเสมอสำหรับ endpoint ที่จบโดยไม่มี body, การ map การตรวจสอบข้อมูลของ FastEndpoints, การ bind filter ของ list query แบบทั้งค่า และการค้นหา endpoint
+ด้วยการตั้งค่านี้:
 
-ปรับ route prefix และการตั้งค่า FastEndpoints เมื่อจำเป็น:
+- endpoint ทุกตัวอยู่ภายใต้ `/api/v1`
+- validator ถูกค้นพบและรันก่อน endpoint เมื่อไม่ผ่านจะตอบ 400 `Validation.Failed`
+- ความล้มเหลวทุกแบบ ตั้งแต่ exception ที่ถูก throw ไปจนถึง 404 ที่ไม่มี body ตอบด้วย error body ร่วมตามที่อธิบายใน [error response](#error-response)
+- ค่า `filters` ที่ซ้ำกันใน query ของ `ListQueryRequest` ถูก bind ทั้งค่า
+
+## อ้างอิงการลงทะเบียน
+
+| เมธอด | ใช้กับ | หน้าที่ |
+| --- | --- | --- |
+| `AddFastEndpointsApi(configureOpenApi)` | `IServiceCollection` | ลงทะเบียน FastEndpoints โดยเปิด `IncludeAbstractValidators`, การจัดการ error ร่วมจาก `AddApiErrorHandling` และเอกสาร OpenAPI ของ FastEndpoints delegate (ถ้ามี) ใช้ปรับแต่ง `DocumentOptions` |
+| `AddFastEndpointsApi(configureOpenApi, configureDiscovery)` | `IServiceCollection` | เหมือนข้างต้น พร้อม hook ที่ปรับ `EndpointDiscoveryOptions` หลังจาก adapter ตั้งค่าของตนแล้ว |
+| `UseFastEndpointsApi(routePrefix, configure)` | `IApplicationBuilder` | `UseApiErrorHandling` บวก `UseFastEndpoints` พร้อม route prefix (ค่าเริ่มต้น `api/v1`), response builder ของ validation และ filter binding delegate (ถ้ามี) ใช้ปรับ `Config` ของ FastEndpoints ต่อจากนั้น |
+
+การปรับแต่ง pipeline:
 
 ```csharp
 app.UseFastEndpointsApi(
@@ -41,7 +75,9 @@ app.UseFastEndpointsApi(
     });
 ```
 
-ตั้งค่าเอกสาร OpenAPI ที่สร้างขึ้นระหว่างลงทะเบียน service:
+## OpenAPI
+
+ตั้งค่าเอกสารของ FastEndpoints ระหว่างลงทะเบียน:
 
 ```csharp
 builder.Services.AddFastEndpointsApi(document =>
@@ -50,82 +86,42 @@ builder.Services.AddFastEndpointsApi(document =>
 });
 ```
 
-## map error ของแอปพลิเคชัน
+## การตรวจสอบข้อมูล
 
-แปลง `Error` ของ Whimclean ที่ล้มเหลวเป็น HTTP response มาตรฐาน:
+### การค้นหา validator
+
+FastEndpoints จับคู่ request DTO แต่ละตัวกับ validator ของมันตอนเริ่มระบบ adapter เปิด `IncludeAbstractValidators` ดังนั้น validator จะสืบทอดจาก `Validator<TRequest>` ของ FastEndpoints หรือสืบทอดโดยตรงจาก `AbstractValidator<TRequest>` ของ FluentValidation ก็ได้ นี่คือสิ่งที่ทำให้ validator ที่สืบทอดจาก `ListQueryRequestValidator<TRequest>` ของแพ็กเกจหลักถูกค้นพบ
+
+เนื่องจากคลาสที่สืบทอดจาก `AbstractValidator<T>` ทุกตัวใน assembly ที่สแกนจะถูกค้นพบ ให้จำกัดการสแกนเมื่อ assembly มี validator ที่ไม่ใช่ validator ของ request:
 
 ```csharp
-using Athenex.Whimclean.Api.AspNetCore.Errors;
-
-var result = await handler.HandleAsync(request, cancellationToken);
-
-if (result.IsFailure)
-{
-    await Send.ResultAsync(result.Error.ToHttpResult());
-    return;
-}
+builder.Services.AddFastEndpointsApi(
+    configureOpenApi: null,
+    configureDiscovery: discovery => discovery.Assemblies = [typeof(Program).Assembly]);
 ```
 
-การ map คือ validation → 400, unauthorized → 401, forbidden → 403, not found → 404, conflict → 409 และความล้มเหลวทั่วไป → 500
+validator ที่สืบทอดจาก `AbstractValidator<TRequest>` ใช้ `Resolve<T>()` ของ FastEndpoints ไม่ได้ ให้ inject dependency ผ่าน constructor แทน
 
-response ใช้รูปร่างนี้:
+### response ของการตรวจสอบ
+
+ความล้มเหลวถูกแสดงผลผ่าน `ValidationHttpMapper` ของแพ็กเกจหลัก body จึงตรงกับ Minimal API ทุกประการ:
 
 ```json
 {
-  "code": "Order.NotFound",
-  "description": "The order was not found.",
-  "errors": null
+  "code": "Validation.Failed",
+  "description": "One or more validation errors occurred.",
+  "errors": [
+    { "code": "NotEmptyValidator", "description": "'Customer Id' must not be empty.", "field": "customerId" }
+  ]
 }
 ```
-
-ความล้มเหลวจากการตรวจสอบข้อมูลของ FastEndpoints ตอบ 400 ด้วย code `Validation.Failed` และเติม `errors` ด้วย code, description และชื่อ field แบบ camelCase ของแต่ละความล้มเหลว
-
-## การ map exception ในตัว
-
-- `CurrentUserRequiredException` → 401 `Authentication.CurrentUserRequired`
-- `PersistenceConcurrencyException` → 409 `Persistence.ConcurrentUpdate`
-- exception ที่ไม่คาดคิด → 500 `Server.UnexpectedError`
-
-รายละเอียดของ exception ที่ไม่คาดคิดถูกบันทึก log แต่ไม่ส่งกลับให้ client
-
-## เพิ่มการ map exception เฉพาะผลิตภัณฑ์
-
-```csharp
-using Athenex.Whimclean.Api.AspNetCore.Errors;
-using Microsoft.AspNetCore.Http;
-
-public sealed class OrderApiExceptionMapper : IApiExceptionMapper
-{
-    public bool TryMap(
-        Exception exception,
-        out ApiExceptionMapping mapping)
-    {
-        if (exception is OrderLockedException)
-        {
-            mapping = new ApiExceptionMapping(
-                StatusCodes.Status409Conflict,
-                new ApiErrorResponse(
-                    "Order.Locked",
-                    "The order is currently locked."));
-            return true;
-        }
-
-        mapping = default;
-        return false;
-    }
-}
-
-services.AddSingleton<IApiExceptionMapper, OrderApiExceptionMapper>();
-```
-
-mapper ถูกตรวจตามลำดับการลงทะเบียน และตัวแรกที่ตรงจะถูกใช้ package multitenancy สำหรับ ASP.NET Core (ตัวเลือกเสริม) เพิ่มการ map ของ tenant ผ่านจุดขยายเดียวกันนี้
 
 ## endpoint แบบรายการ
 
-สืบทอด request จาก `ListQueryRequest` เพื่อรับ `searchTerm`, `sort`, `filters`, `page` และ `size` ที่ bind จาก query string และสืบทอด validator จาก `ListQueryRequestValidator<TRequest>` เพื่อประกาศสิ่งที่ endpoint รองรับ:
+สืบทอด request จาก `ListQueryRequest` ของแพ็กเกจหลัก และ validator จาก `ListQueryRequestValidator<TRequest>` FastEndpoints bind request จาก query string ค้นพบ validator และรันก่อน endpoint:
 
 ```csharp
-using Athenex.Whimclean.Api.FastEndpoints.Queries;
+using Athenex.Whimclean.Api.AspNetCore.Queries;
 using Athenex.Whimclean.Application.Pagination;
 using Athenex.Whimclean.Application.Queries;
 using FastEndpoints;
@@ -152,6 +148,55 @@ public sealed class ListTenantsEndpoint(ITenantQueries queries)
 }
 ```
 
-validator พื้นฐานปฏิเสธค่า sort และ filter ที่ผิดรูปแบบ, page และ size นอกช่วง (`page` ≥ 1, `size` ระหว่าง 1 ถึง `ListQueryOptions.MaximumSize`), filter มากกว่า `ListQueryOptions.MaximumFilters` รายการ และคำค้นหาที่ยาวเกินไป; allow-list ปฏิเสธ field, operator และค่าที่ไม่รู้จักพร้อมข้อความระบุชื่อสิ่งนั้น `AllowFilterField` และ `AllowEnumFilterField` ใช้ operator `Equal` และ `In` เป็นค่าเริ่มต้นเมื่อไม่ระบุ; `AllowEnumFilterField<TEnum>` รับชื่อสมาชิกของ enum โดยไม่สนตัวพิมพ์ใหญ่เล็ก หากไม่มี allow-list ทุก field จะผ่าน และ query จะละเลยสิ่งที่ไม่รู้จัก `ToListQueryOptions` แปลง request เป็น `ListQueryOptions`; ให้รัน validator ก่อนเพื่อให้ข้อมูลที่ผิดรูปแบบปรากฏเป็น 400 แทนที่จะเป็น exception `UseFastEndpointsApi` ลงทะเบียน binding (`ListQueryBinding.KeepListQueryFiltersWhole`) ที่เก็บค่า `in` ที่คั่นด้วยจุลภาคไว้ใน filter เดียว
+พารามิเตอร์ของ query string, กฎการตรวจสอบ และเมธอด allow-list อธิบายไว้ในหัวข้อ [endpoint แบบรายการ](https://github.com/athene-x/Whimclean/blob/main/src/Athenex.Whimclean.Api.AspNetCore/README-TH.md#endpoint-แบบรายการ) ของแพ็กเกจหลัก
 
-Repository และคู่มือสถาปัตยกรรมฉบับเต็ม: https://github.com/athene-x/Whimclean
+`UseFastEndpointsApi` ลงทะเบียน `ListQueryBinding.KeepListQueryFiltersWhole` ซึ่ง bind ค่า `filters` ที่ซ้ำกันแต่ละค่าตามที่ได้รับ เพื่อให้ค่า `in` ที่คั่นด้วยจุลภาค (`status:in:draft,published`) อยู่ใน filter เดียว เรียกเองเฉพาะเมื่อตั้งค่า `UseFastEndpoints` โดยตรง
+
+## error response
+
+ทุก response ที่ล้มเหลวใช้ body ของแพ็กเกจหลัก:
+
+```json
+{
+  "code": "Order.NotFound",
+  "description": "The order was not found.",
+  "errors": null
+}
+```
+
+| เงื่อนไข | HTTP | code |
+| --- | ---: | --- |
+| `CurrentUserRequiredException` | 401 | `Authentication.CurrentUserRequired` |
+| `PersistenceConcurrencyException` | 409 | `Persistence.ConcurrentUpdate` |
+| validation ของ FastEndpoints ล้มเหลว | 400 | `Validation.Failed` |
+| response จบด้วย 400 โดยไม่มี body | 400 | `Request.Invalid` |
+| response จบด้วย 401 โดยไม่มี body | 401 | `Authentication.Unauthorized` |
+| response จบด้วย 403 โดยไม่มี body | 403 | `Authorization.Forbidden` |
+| response จบด้วย 404 โดยไม่มี body | 404 | `Resource.NotFound` |
+| exception อื่นใด | 500 | `Server.UnexpectedError` |
+
+รายละเอียดของ exception ที่ไม่คาดคิดถูกบันทึก log และไม่ส่งกลับให้ client
+
+### การคืน error ของ domain จาก endpoint
+
+```csharp
+using Athenex.Whimclean.Api.AspNetCore.Errors;
+
+var result = await handler.HandleAsync(request, ct);
+
+if (result.IsFailure)
+{
+    await Send.ResultAsync(result.Error.ToHttpResult());
+    return;
+}
+```
+
+`ErrorType` map เป็น status code เช่นเดียวกับแพ็กเกจหลัก: `Validation` 400, `Unauthorized` 401, `Forbidden` 403, `NotFound` 404, `Conflict` 409, `Failure` 500
+
+### การเพิ่มการ map exception
+
+ลงทะเบียน `IApiExceptionMapper`; ดู [การเพิ่มการ map exception](https://github.com/athene-x/Whimclean/blob/main/src/Athenex.Whimclean.Api.AspNetCore/README-TH.md#การเพิ่มการ-map-exception) ในแพ็กเกจหลัก mapper ถูกตรวจตามลำดับการลงทะเบียนและตัวแรกที่ตรงจะถูกใช้
+
+---
+
+Repository และคู่มือสถาปัตยกรรม: https://github.com/athene-x/Whimclean

@@ -1,8 +1,8 @@
-using System.Text.Json;
 using Athenex.Whimclean.Api.AspNetCore;
 using Athenex.Whimclean.Api.AspNetCore.Errors;
 using Athenex.Whimclean.Api.FastEndpoints.Queries;
 using FastEndpoints;
+using FastEndpoints.OpenApi;
 using Microsoft.AspNetCore.Builder;
 
 namespace Athenex.Whimclean.Api.FastEndpoints;
@@ -16,12 +16,12 @@ public static class ApplicationBuilderExtensions
     /// Configures the request pipeline for a FastEndpoints-based API: the
     /// shared error handling from <c>UseApiErrorHandling</c>, plus
     /// FastEndpoints with the given route prefix and with validation
-    /// failures rendered as the shared <see cref="ApiErrorResponse"/>
-    /// (code <c>"Validation.Failed"</c>, camelCase field names), and list
-    /// query filters bound whole
+    /// failures rendered through the shared
+    /// <see cref="ValidationHttpMapper"/> (code <c>"Validation.Failed"</c>,
+    /// camelCase field names), and list query filters bound whole
     /// (<see cref="ListQueryBinding.KeepListQueryFiltersWhole"/>). Requires
     /// the services added by
-    /// <see cref="DependencyInjection.AddFastEndpointsApi"/>.
+    /// <see cref="DependencyInjection.AddFastEndpointsApi(Microsoft.Extensions.DependencyInjection.IServiceCollection, Action{DocumentOptions}?)"/>.
     /// </summary>
     /// <param name="app">The application pipeline to configure.</param>
     /// <param name="routePrefix">
@@ -55,16 +55,7 @@ public static class ApplicationBuilderExtensions
             options.Binding.KeepListQueryFiltersWhole();
             options.Errors.ProducesMetadataType = typeof(ApiErrorResponse);
             options.Errors.ResponseBuilder = (failures, _, _) =>
-                new ApiErrorResponse(
-                    "Validation.Failed",
-                    "One or more validation errors occurred.",
-                    failures
-                        .Select(failure => new ApiErrorDetail(
-                            failure.ErrorCode,
-                            failure.ErrorMessage,
-                            JsonNamingPolicy.CamelCase.ConvertName(
-                                failure.PropertyName)))
-                        .ToArray());
+                failures.ToApiErrorResponse();
 
             configure?.Invoke(options);
         });

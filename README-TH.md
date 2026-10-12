@@ -2,92 +2,68 @@
 
 [English](README.md)
 
-ชุด building block สำหรับ .NET 10 ครอบคลุม domain-driven design, งานในชั้น application, EF Core แบบไม่ผูกกับ provider, PostgreSQL, multitenancy แบบเลือกใช้ได้ และ API แบบ FastEndpoints การยืนยันตัวตนเป็นแบบนำมาเอง: แอปพลิเคชันยืนยันตัวตนกับ identity provider ภายนอก (Keycloak, Microsoft Entra ID, Auth0 หรือ ASP.NET Core Identity ที่ต่อโดยตรง) แล้ว Whimclean รับ principal ที่ได้ผ่าน `ICurrentUser<TUserId>` โดยแพ็กเกจเสริม `Identity.Keycloak` มีการลงทะเบียน Keycloak ให้พร้อมใช้ repository นี้ผลิตแพ็กเกจต่อไปนี้:
+Whimclean คือชุด building block สำหรับ .NET 10 สำหรับแอปพลิเคชันธุรกิจ: โมเดล domain ที่มี aggregate, domain event และฟิลด์ audit; สัญญาในชั้น application สำหรับ query, pagination และอีเมล; persistence ด้วย EF Core แบบไม่ผูกกับ provider พร้อม adapter สำหรับ PostgreSQL; multitenancy แบบเลือกใช้ได้; และ host แบบ ASP.NET Core Minimal API พร้อม adapter สำหรับ FastEndpoints
 
-- [`Athenex.Whimclean.Domain`](src/Athenex.Whimclean.Domain/README-TH.md) ให้ entity, aggregate root, domain event, การ audit, soft delete, ผลลัพธ์ของการทำงาน (result) และการ normalize ข้อความ
-- [`Athenex.Whimclean.Application`](src/Athenex.Whimclean.Application/README-TH.md) ให้สัญญาของ context ปัจจุบัน, abstraction สำหรับอีเมล, โมเดล pagination, สัญญาด้าน persistence และ query options ที่ผ่านการตรวจสอบพร้อมไวยากรณ์ของ `ListQueryParser` ขึ้นกับ `Athenex.Whimclean.Domain`
-- [`Athenex.Whimclean.Infrastructure`](src/Athenex.Whimclean.Infrastructure/README-TH.md) ให้การแปลง audit actor แบบไม่ผูกกับ provider, pipeline ของ domain event ภายในโปรเซส และตัวระบุสำหรับ seed แบบกำหนดผลได้ (deterministic) ขึ้นกับ `Athenex.Whimclean.Domain`
-- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore/README-TH.md) ให้การเขียนที่บังคับต้องมีผู้ใช้ปัจจุบัน, การ audit, query filter สำหรับ soft delete แบบมีชื่อ, การจัดการ concurrency, การส่ง domain event แบบ asynchronous, ตัวช่วยสำหรับ list query, สวิตช์ `--migrate` และการลงทะเบียน `DbContext`/`IUnitOfWork` ร่วมกัน ขึ้นกับ `Application`, `Infrastructure` และ EF Core (รวม `Microsoft.EntityFrameworkCore.Relational`) แต่ไม่ขึ้นกับ database provider ใด
-- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/README-TH.md) ให้ dependency ของ Npgsql, การลงทะเบียน PostgreSQL และตัวช่วยค้นหาแบบไม่สนตัวพิมพ์ `SearchILike` ขึ้นกับ `Infrastructure.EntityFrameworkCore`
-- [`Athenex.Whimclean.Api.AspNetCore`](src/Athenex.Whimclean.Api.AspNetCore/README-TH.md) ให้ข้อตกลงของ API ที่ไม่ผูกกับ framework: สัญญา error ที่สม่ำเสมอ, การจัดการ exception, การตอบ status code, การแปลง result เป็น HTTP, การแปลงผู้ใช้ปัจจุบันจาก claim และจากตารางผู้ใช้ภายใน, health check endpoint, rate limit ต่อผู้เรียก และ options ที่ผ่านการตรวจสอบ ขึ้นกับ `Athenex.Whimclean.Application`
-- [`Athenex.Whimclean.Api.FastEndpoints`](src/Athenex.Whimclean.Api.FastEndpoints/README-TH.md) ให้การลงทะเบียน FastEndpoints และ OpenAPI พร้อมการตอบผล validation บนสัญญา error ร่วม รวมถึงสัญญา `ListQueryRequest` และ validator ของมัน ขึ้นกับ `Api.AspNetCore`
-- [`Athenex.Whimclean.Mediator`](src/Athenex.Whimclean.Mediator/README-TH.md) เป็นตัวเลือกสำหรับผสานกับ [Mediator](https://github.com/martinothamar/Mediator): pipeline behavior ที่ commit unit of work หลังแต่ละ command และการส่ง domain event เป็น notification ของ mediator ขึ้นกับ `Application`, `Infrastructure` และ `Mediator.Abstractions` ส่วนแอปพลิเคชันเป็นผู้จัดหา `Mediator.SourceGenerator`
-- [`Athenex.Whimclean.Multitenancy.Abstractions`](src/Athenex.Whimclean.Multitenancy.Abstractions/README-TH.md) เป็นตัวเลือกที่ให้สัญญาสำหรับ marker ของ tenant/context ปัจจุบัน, การตรวจสอบสิทธิ์เข้าถึง, current tenant แบบ ambient สำหรับ host ที่ไม่ใช่ HTTP และ exception ของขอบเขต tenant ไม่มี dependency ต่อแพ็กเกจใด
-- [`Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/README-TH.md) เป็นตัวเลือกที่เพิ่ม query filter ของ tenant แบบ fail-closed และการตรวจสอบการเขียนให้กับ EF Core context ที่ไม่ผูกกับ provider
-- [`Athenex.Whimclean.Api.AspNetCore.Multitenancy`](src/Athenex.Whimclean.Api.AspNetCore.Multitenancy/README-TH.md) เป็นตัวเลือกที่แปลง tenant ที่ถูกร้องขอ (ยังไม่เชื่อถือ) จาก header ของ id หรือจาก header ของ slug ผ่าน slug lookup ที่ผู้ใช้งานเป็นเจ้าของ แล้วจึงตั้ง current tenant ก็ต่อเมื่อ membership validator ที่ผู้ใช้งานเป็นเจ้าของอนุญาตแล้วเท่านั้น ใช้ได้ทั้งกับ FastEndpoints และ Minimal APIs
-- [`Athenex.Whimclean.Auditing`](src/Athenex.Whimclean.Auditing/README-TH.md) เป็นตัวเลือกที่บันทึกผลลัพธ์ actor และการเปลี่ยนแปลงของฟิลด์ของทุก command ที่ถูก audit ลงใน audit log ซึ่งเขียนนอก unit of work ขึ้นกับ `Application`, `Domain` และ `Mediator.Abstractions` ส่วน [`Athenex.Whimclean.Auditing.AspNetCore`](src/Athenex.Whimclean.Auditing.AspNetCore/README-TH.md) ป้อนชื่อผู้เรียก, correlation id, ที่อยู่ และ user agent จาก request ให้
-- [`Athenex.Whimclean.Infrastructure.Email.Smtp`](src/Athenex.Whimclean.Infrastructure.Email.Smtp/README-TH.md) implement `IEmailSender` บน SMTP พร้อม options ที่ผ่านการตรวจสอบ ขึ้นกับ `Application`
-- [`Athenex.Whimclean.Identity.Keycloak`](src/Athenex.Whimclean.Identity.Keycloak/README-TH.md) ลงทะเบียนการยืนยันตัวตนแบบ JWT bearer ตามธรรมเนียม claim ของ Keycloak และให้ client ของ admin API สำหรับสร้างผู้ใช้ ขึ้นกับ `Domain`
+การตัดสินใจสามข้อที่กำหนดรูปร่างของ library:
 
-## การติดตั้ง
+- **การยืนยันตัวตนเป็นแบบนำมาเอง** แอปพลิเคชันยืนยันตัวตนกับ identity provider ภายนอก (Keycloak, Microsoft Entra ID, Auth0) หรือกับ ASP.NET Core Identity และ Whimclean รับเฉพาะ principal ที่ได้ผ่าน `ICurrentUser<TUserId>` ไม่เก็บผู้ใช้ credential หรือ token
+- **dependency ชี้ทางเดียว** แพ็กเกจของ provider, API และ tenant ขึ้นกับแพ็กเกจกลาง ไม่มีทางกลับกัน จึงเปลี่ยน provider หรือรูปแบบ endpoint ได้โดยไม่แตะชั้น domain และ application
+- **สัญญา API เดียว** `Athenex.Whimclean.Api.AspNetCore` เป็นแพ็กเกจ API หลัก สร้างบน Minimal APIs ส่วน `Athenex.Whimclean.Api.FastEndpoints` นำ error body, response ของ validation และสัญญา list query ชุดเดียวกันไปใช้กับ FastEndpoints
 
-### Package feed
+## สารบัญ
 
-แพ็กเกจเผยแพร่บน NuGet feed ของ athene-x ที่ [GitHub Packages](https://github.com/orgs/athene-x/packages) ไม่ใช่บน nuget.org การใช้งานต้องเป็นสมาชิกขององค์กร athene-x:
+- [แพ็กเกจ](#แพ็กเกจ)
+- [การติดตั้ง](#การติดตั้ง)
+- [การประกอบแอปพลิเคชัน](#การประกอบแอปพลิเคชัน)
+- [โมเดล domain](#โมเดล-domain)
+- [สัญญาในชั้น application](#สัญญาในชั้น-application)
+- [persistence ด้วย EF Core](#persistence-ด้วย-ef-core)
+- [การยืนยันตัวตนและผู้ใช้ปัจจุบัน](#การยืนยันตัวตนและผู้ใช้ปัจจุบัน)
+- [command, event และ audit log](#command-event-และ-audit-log)
+- [multitenancy](#multitenancy)
+- [API host](#api-host)
+- [อ่านเพิ่มเติม](#อ่านเพิ่มเติม)
 
-1. สร้าง [personal access token (classic)](https://github.com/settings/tokens) ที่มี scope `read:packages`
-2. ลงทะเบียน feed หนึ่งครั้งต่อเครื่อง:
+## แพ็กเกจ
 
-   ```shell
-   dotnet nuget add source \
-     --username YOUR_GITHUB_USERNAME \
-     --password YOUR_GITHUB_TOKEN \
-     --store-password-in-clear-text \
-     --name github \
-     "https://nuget.pkg.github.com/athene-x/index.json"
-   ```
+แต่ละแพ็กเกจมี README ของตัวเอง พร้อมการติดตั้ง ขอบเขต และตัวอย่าง
 
-3. หาก repository ที่ใช้งานมี `packageSourceMapping` ใน `nuget.config` การเพิ่ม source อย่างเดียวไม่พอ — restore จะไม่พิจารณา source ที่ไม่ได้ map ต้อง map prefix ของแพ็กเกจด้วย:
+### พื้นฐาน
 
-   ```xml
-   <packageSourceMapping>
-     <packageSource key="github">
-       <package pattern="Athenex.Whimclean.*" />
-     </packageSource>
-   </packageSourceMapping>
-   ```
+| แพ็กเกจ | ให้อะไร | ขึ้นกับ |
+| --- | --- | --- |
+| [`Domain`](src/Athenex.Whimclean.Domain/README-TH.md) | entity, aggregate root, domain event, ฟิลด์ audit, soft delete, `Result` และ `Error`, การ normalize ข้อความ | ไม่มี |
+| [`Application`](src/Athenex.Whimclean.Application/README-TH.md) | สัญญาของผู้ใช้ปัจจุบันและ context ปัจจุบัน, abstraction สำหรับอีเมล, โมเดล pagination, สัญญาด้าน persistence, list query options ที่ผ่านการตรวจสอบ และไวยากรณ์ของ `ListQueryParser` | `Domain` |
+| [`Infrastructure`](src/Athenex.Whimclean.Infrastructure/README-TH.md) | การ resolve audit actor แบบไม่ผูกกับ provider, pipeline ของ domain event ภายในโปรเซส, ตัวระบุสำหรับ seed แบบกำหนดผลได้ | `Domain` |
+| [`Multitenancy.Abstractions`](src/Athenex.Whimclean.Multitenancy.Abstractions/README-TH.md) | สัญญาของ tenant marker และ current tenant, การตรวจสอบสิทธิ์เข้าถึง, current tenant แบบ ambient สำหรับ host ที่ไม่ใช่ HTTP, exception ของขอบเขต tenant | ไม่มี |
 
-### แพ็กเกจ
+### persistence
 
-```shell
-dotnet add package Athenex.Whimclean.Domain
-dotnet add package Athenex.Whimclean.Application
-dotnet add package Athenex.Whimclean.Infrastructure
-dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore
-dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL
-dotnet add package Athenex.Whimclean.Api.AspNetCore
-dotnet add package Athenex.Whimclean.Api.FastEndpoints
-dotnet add package Athenex.Whimclean.Mediator
-dotnet add package Athenex.Whimclean.Multitenancy.Abstractions
-dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy
-dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
-dotnet add package Athenex.Whimclean.Auditing
-dotnet add package Athenex.Whimclean.Auditing.AspNetCore
-dotnet add package Athenex.Whimclean.Infrastructure.Email.Smtp
-dotnet add package Athenex.Whimclean.Identity.Keycloak
-```
+| แพ็กเกจ | ให้อะไร | ขึ้นกับ |
+| --- | --- | --- |
+| [`Infrastructure.EntityFrameworkCore`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore/README-TH.md) | `AuditableDbContext`, การเขียนที่บังคับต้องมีผู้ใช้ปัจจุบัน, การประทับค่า audit, query filter สำหรับ soft delete แบบมีชื่อ, การแปลง concurrency exception, การส่ง domain event แบบ asynchronous, ตัวช่วยสำหรับ list query, สวิตช์ `--migrate`, การลงทะเบียน `DbContext`/`IUnitOfWork` | `Application`, `Infrastructure`, EF Core (ไม่มี provider) |
+| [`Infrastructure.EntityFrameworkCore.PostgreSQL`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/README-TH.md) | Npgsql, การลงทะเบียน PostgreSQL, ตัวช่วยค้นหาแบบไม่สนตัวพิมพ์ `SearchILike` | `Infrastructure.EntityFrameworkCore` |
+| [`Infrastructure.EntityFrameworkCore.Multitenancy`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/README-TH.md) | `MultiTenantDbContext`, query filter ของ tenant แบบ fail-closed และการตรวจสอบการเขียน | `Infrastructure.EntityFrameworkCore`, `Multitenancy.Abstractions` |
 
-ติดตั้งเฉพาะแพ็กเกจระดับบนสุดที่แอปพลิเคชันใช้ เช่น API ที่ใช้ PostgreSQL อ้างอิง `Infrastructure.EntityFrameworkCore.PostgreSQL` และ `Api.FastEndpoints` ก็พอ NuGet จะดึง dependency ระดับล่างมาให้แบบ transitive
+### API
 
-### ชุดแพ็กเกจที่ใช้บ่อย
+| แพ็กเกจ | ให้อะไร | ขึ้นกับ |
+| --- | --- | --- |
+| [`Api.AspNetCore`](src/Athenex.Whimclean.Api.AspNetCore/README-TH.md) | แพ็กเกจ API หลัก: การลงทะเบียน Minimal API พร้อม OpenAPI, การตรวจสอบ request ด้วย FluentValidation บน group `api/v1`, สัญญา `ListQueryRequest`, สัญญา error พร้อมการ map exception และ `Result`, การ resolve ผู้ใช้ปัจจุบัน, health endpoint, rate limit, options ที่ผ่านการตรวจสอบ | `Application` |
+| [`Api.FastEndpoints`](src/Athenex.Whimclean.Api.FastEndpoints/README-TH.md) | adapter ของ FastEndpoints: การลงทะเบียน FastEndpoints และ OpenAPI ของมัน, response ของ validation บนสัญญา error ร่วม, การ bind filter ของ list query แบบทั้งค่า | `Api.AspNetCore` |
+| [`Api.AspNetCore.Multitenancy`](src/Athenex.Whimclean.Api.AspNetCore.Multitenancy/README-TH.md) | การ resolve tenant ที่ถูกร้องขอจาก header ของ id หรือ slug, การอนุญาตตาม membership, tenant context ที่ผ่านการอนุญาต, การ map error ของ tenant ใช้ได้ทั้งกับ Minimal APIs และ FastEndpoints | `Api.AspNetCore`, `Multitenancy.Abstractions` |
 
-| ความต้องการของแอปพลิเคชัน | แพ็กเกจที่อ้างอิงโดยตรง |
-| --- | --- |
-| ใช้เฉพาะสัญญาของ domain และ application | `Domain`, `Application` |
-| API ธุรกิจบน PostgreSQL | `Infrastructure.EntityFrameworkCore.PostgreSQL`, `Api.FastEndpoints` |
-| ใช้ Minimal APIs แทน FastEndpoints | `Infrastructure.EntityFrameworkCore.PostgreSQL`, `Api.AspNetCore` |
-| เพิ่มการแยกข้อมูลตาม tenant ใน EF | แพ็กเกจก่อนหน้า บวก `Infrastructure.EntityFrameworkCore.Multitenancy` |
-| เพิ่มการแปลง tenant จาก HTTP และการอนุญาตตาม membership | แพ็กเกจก่อนหน้า บวก `Api.AspNetCore.Multitenancy` |
-| commit แต่ละ command ผ่าน Mediator | แพ็กเกจก่อนหน้า บวก `Mediator` (และ `Mediator.SourceGenerator` จากฝั่งแอปพลิเคชัน) |
-| audit ทุก command | แพ็กเกจก่อนหน้า บวก `Auditing` และ `Auditing.AspNetCore` |
-| ยืนยันตัวตนกับ Keycloak และสร้างผู้ใช้ของมัน | แพ็กเกจก่อนหน้า บวก `Identity.Keycloak` |
-| ส่งอีเมลผ่าน SMTP | แพ็กเกจก่อนหน้า บวก `Infrastructure.Email.Smtp` |
+### cross-cutting
 
-แต่ละไดเรกทอรีของแพ็กเกจมี README เฉพาะทางที่ครอบคลุมการติดตั้ง ขอบเขตความรับผิดชอบ และตัวอย่างการใช้งาน ส่วนที่เหลือของคู่มือหลักนี้แสดงวิธีที่แพ็กเกจประกอบกันในแอปพลิเคชันเดียว
+| แพ็กเกจ | ให้อะไร | ขึ้นกับ |
+| --- | --- | --- |
+| [`Mediator`](src/Athenex.Whimclean.Mediator/README-TH.md) | การผสานกับ [Mediator](https://github.com/martinothamar/Mediator): pipeline behavior ที่ commit unit of work หลังแต่ละ command และการส่ง domain event เป็น notification แอปพลิเคชันเป็นผู้จัดหา `Mediator.SourceGenerator` | `Application`, `Infrastructure`, `Mediator.Abstractions` |
+| [`Auditing`](src/Athenex.Whimclean.Auditing/README-TH.md) | audit log ที่บันทึกผลลัพธ์ actor และการเปลี่ยนแปลงของฟิลด์ของทุก command ที่ถูก audit โดยเขียนนอก unit of work | `Application`, `Domain`, `Mediator.Abstractions` |
+| [`Auditing.AspNetCore`](src/Athenex.Whimclean.Auditing.AspNetCore/README-TH.md) | ชื่อผู้เรียก, correlation id, ที่อยู่ และ user agent สำหรับ audit log โดยอ่านจาก request | `Auditing` |
+| [`Infrastructure.Email.Smtp`](src/Athenex.Whimclean.Infrastructure.Email.Smtp/README-TH.md) | `IEmailSender` บน SMTP พร้อม options ที่ผ่านการตรวจสอบ | `Application` |
+| [`Identity.Keycloak`](src/Athenex.Whimclean.Identity.Keycloak/README-TH.md) | การยืนยันตัวตนแบบ JWT bearer ตามธรรมเนียม claim ของ Keycloak และ client ของ admin API สำหรับสร้างผู้ใช้ | `Domain` |
 
-## ขอบเขตของแพ็กเกจ infrastructure
-
-ทิศทางของ dependency ตั้งใจให้เป็นทางเดียว:
+### แผนภาพ dependency
 
 ```text
 Infrastructure.EntityFrameworkCore.PostgreSQL
@@ -124,9 +100,136 @@ Identity.Keycloak
     -> Domain
 ```
 
-โปรเจกต์ PostgreSQL ไม่มี pipeline ของการ audit, tenant, soft delete, concurrency หรือ domain event พฤติกรรมด้าน persistence ที่ใช้ร่วมกันอยู่ในแพ็กเกจ EF Core ที่ไม่ผูกกับ provider ส่วนพฤติกรรมของ tenant เป็นแพ็กเกจ decorator แบบเลือกใช้ได้ ดังนั้นแพ็กเกจ provider ในอนาคตต้องการเพียง dependency ของ provider นั้นกับเมธอดลงทะเบียนที่ส่งต่อไปยัง `AddEntityFrameworkCoreUnitOfWork<TContext>`
+แพ็กเกจ PostgreSQL ไม่มีโค้ดของ auditing, tenant, soft delete, concurrency หรือ domain event; พฤติกรรมเหล่านั้นอยู่ในแพ็กเกจ EF Core ที่ไม่ผูกกับ provider และพฤติกรรมของ tenant เป็นแพ็กเกจ decorator แยกต่างหาก แพ็กเกจ provider ใหม่จึงต้องการเพียง dependency ของ provider นั้นและเมธอดลงทะเบียนที่ส่งต่อไปยัง `AddEntityFrameworkCoreUnitOfWork<TContext>`
 
-## Entity และ aggregate root
+### การเลือกแพ็กเกจ
+
+อ้างอิงเฉพาะแพ็กเกจระดับบนสุดที่แอปพลิเคชันใช้ NuGet จะดึง dependency มาให้แบบ transitive
+
+| ความต้องการของแอปพลิเคชัน | แพ็กเกจที่อ้างอิงโดยตรง |
+| --- | --- |
+| ใช้เฉพาะสัญญาของ domain และ application | `Domain`, `Application` |
+| API ธุรกิจบน PostgreSQL (Minimal APIs) | `Infrastructure.EntityFrameworkCore.PostgreSQL`, `Api.AspNetCore` |
+| ใช้ FastEndpoints แทน Minimal APIs | `Infrastructure.EntityFrameworkCore.PostgreSQL`, `Api.FastEndpoints` |
+| เพิ่มการแยกข้อมูลตาม tenant ใน EF | แพ็กเกจก่อนหน้า บวก `Infrastructure.EntityFrameworkCore.Multitenancy` |
+| เพิ่มการ resolve tenant จาก HTTP และการอนุญาตตาม membership | แพ็กเกจก่อนหน้า บวก `Api.AspNetCore.Multitenancy` |
+| commit แต่ละ command ผ่าน Mediator | แพ็กเกจก่อนหน้า บวก `Mediator` (และ `Mediator.SourceGenerator` จากฝั่งแอปพลิเคชัน) |
+| audit ทุก command | แพ็กเกจก่อนหน้า บวก `Auditing` และ `Auditing.AspNetCore` |
+| ยืนยันตัวตนกับ Keycloak และสร้างผู้ใช้ของมัน | แพ็กเกจก่อนหน้า บวก `Identity.Keycloak` |
+| ส่งอีเมลผ่าน SMTP | แพ็กเกจก่อนหน้า บวก `Infrastructure.Email.Smtp` |
+
+## การติดตั้ง
+
+### feed ของแพ็กเกจ
+
+แพ็กเกจเผยแพร่บน NuGet feed ของ athene-x ใน [GitHub Packages](https://github.com/orgs/athene-x/packages) ไม่ใช่ nuget.org การใช้งานต้องเป็นสมาชิกขององค์กร athene-x
+
+1. สร้าง [personal access token (classic)](https://github.com/settings/tokens) ที่มี scope `read:packages`
+2. ลงทะเบียน feed หนึ่งครั้งต่อเครื่อง:
+
+   ```shell
+   dotnet nuget add source \
+     --username YOUR_GITHUB_USERNAME \
+     --password YOUR_GITHUB_TOKEN \
+     --store-password-in-clear-text \
+     --name github \
+     "https://nuget.pkg.github.com/athene-x/index.json"
+   ```
+
+3. หาก repository ที่ใช้งานมี `packageSourceMapping` ใน `nuget.config` การ restore จะพิจารณาเฉพาะ source ที่ map ไว้ ให้ map prefix ของแพ็กเกจด้วย:
+
+   ```xml
+   <packageSourceMapping>
+     <packageSource key="github">
+       <package pattern="Athenex.Whimclean.*" />
+     </packageSource>
+   </packageSourceMapping>
+   ```
+
+### การเพิ่มแพ็กเกจ
+
+```shell
+dotnet add package Athenex.Whimclean.Domain
+dotnet add package Athenex.Whimclean.Application
+dotnet add package Athenex.Whimclean.Infrastructure
+dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore
+dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL
+dotnet add package Athenex.Whimclean.Api.AspNetCore
+dotnet add package Athenex.Whimclean.Api.FastEndpoints
+dotnet add package Athenex.Whimclean.Mediator
+dotnet add package Athenex.Whimclean.Multitenancy.Abstractions
+dotnet add package Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy
+dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
+dotnet add package Athenex.Whimclean.Auditing
+dotnet add package Athenex.Whimclean.Auditing.AspNetCore
+dotnet add package Athenex.Whimclean.Infrastructure.Email.Smtp
+dotnet add package Athenex.Whimclean.Identity.Keycloak
+```
+
+## การประกอบแอปพลิเคชัน
+
+API ธุรกิจบน PostgreSQL ที่ยืนยันตัวตนด้วย Keycloak ประกอบแพ็กเกจเข้าด้วยกันดังนี้ แต่ละส่วนอธิบายในหัวข้อถัดไป
+
+```csharp
+using Athenex.Whimclean.Api.AspNetCore;
+using Athenex.Whimclean.Api.AspNetCore.Operations;
+using Athenex.Whimclean.Identity.Keycloak;
+using Athenex.Whimclean.Infrastructure.EntityFrameworkCore;
+using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Operations;
+using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL;
+using Athenex.Whimclean.Mediator;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Authentication and the current user
+builder.Services.AddKeycloakAuthentication(builder.Configuration);
+builder.Services.AddClaimsCurrentUser<Guid>(options => options.ClaimType = "sub");
+
+// Persistence
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddNullableAuditActorResolver<Guid>();
+builder.Services.AddMediatorDomainEventDispatcher();
+builder.Services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(
+    builder.Configuration.GetConnectionString("Default")!);
+
+// Commands
+builder.Services.AddMediator();
+builder.Services.AddUnitOfWorkBehavior();
+
+// API host
+builder.Services.AddMinimalApi();
+builder.Services.AddApiValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>(tags: [HealthCheckTags.Ready]);
+builder.Services.AddRequestRateLimiting(builder.Configuration);
+
+var app = builder.Build();
+
+if (DatabaseMigration.IsRequested(args))
+{
+    await app.Services.MigrateDatabaseAsync<ApplicationDbContext>();
+    return;
+}
+
+app.UseAuthentication();
+app.UseRateLimiter();
+app.UseAuthorization();
+app.UseMinimalApi();
+app.MapHealthEndpoints();
+
+var api = app.MapApiGroup();
+api.MapGet("orders/{id:guid}", async (Guid id, IMediator mediator) =>
+{
+    var result = await mediator.Send(new GetOrderQuery(id));
+    return result.ToHttpResult(order => Results.Ok(order));
+});
+
+app.Run();
+```
+
+## โมเดล domain
+
+### entity และ aggregate root
 
 ```csharp
 using Athenex.Whimclean.Domain.Entities;
@@ -143,11 +246,11 @@ public sealed class Order : AggregateRoot<Guid>
 }
 ```
 
-event ที่ raise แล้วเปิดให้เข้าถึงผ่าน `DomainEvents` การล้าง event เป็นเรื่องของ infrastructure: `ClearDomainEvents()` เข้าถึงได้ผ่าน `IHasDomainEvents` เท่านั้น และ EF Core context จะเรียกมันหลังบันทึกสำเร็จ ก่อนส่ง event ออกไป
+event ที่ raise แล้วเข้าถึงได้ผ่าน `DomainEvents` การล้าง event เป็นเรื่องของ infrastructure: `ClearDomainEvents()` เข้าถึงได้ผ่าน `IHasDomainEvents` เท่านั้น และ EF Core context เรียกมันหลังบันทึกสำเร็จ ก่อนส่ง event ออกไป
 
-## การ audit
+### ฟิลด์ audit
 
-ชนิดของ actor กำหนด nullability ได้ในตัว ทำให้แต่ละแอปพลิเคชันเลือกใช้ตัวระบุ ชื่อ หรือชนิด actor ที่กำหนดเองได้
+`IAuditable<TActor>` ประกาศฟิลด์ audit สี่ฟิลด์ ชนิดของ actor กำหนด nullability ของตัวเอง แอปพลิเคชันจึงเก็บเป็น identifier ชื่อ หรือชนิด actor ที่กำหนดเองก็ได้:
 
 ```csharp
 using Athenex.Whimclean.Domain.Auditables;
@@ -169,37 +272,9 @@ public sealed class ImportAudit : IAuditable<string?>
 }
 ```
 
-`AuditableEntity<TId, TActor>` และ `AuditableAggregateRoot<TId, TActor>` ประกาศฟิลด์ทั้งสี่นี้ไว้ครั้งเดียว entity ที่สืบทอดจากมันจึงไม่ต้องประกาศซ้ำ EF Core context จะประทับค่าให้ตอนบันทึก
+`AuditableEntity<TId, TActor>` และ `AuditableAggregateRoot<TId, TActor>` ประกาศฟิลด์เหล่านี้ไว้ครั้งเดียว entity ที่สืบทอดจึงไม่ต้องประกาศซ้ำ EF Core context ประทับค่าตอนบันทึก
 
-แพ็กเกจเสริม `Auditing` บันทึกผลลัพธ์ของ command ไม่ใช่ฟิลด์ของแถว command ของ Mediator implement `IAuditedCommand` แล้ว `AuditCommandBehavior` จะเขียนรายการ `AuditLog<TUserId, TTenantId>` ผ่าน `IAuditLogWriter<TUserId, TTenantId>` ของแอปพลิเคชันนอก unit of work ของ command นั้น ส่วน handler ของ domain event เพิ่มการเปลี่ยนแปลงของฟิลด์ผ่าน `IAuditChangeCollector`:
-
-```csharp
-using Athenex.Whimclean.Auditing;
-using Athenex.Whimclean.Auditing.AspNetCore;
-using Athenex.Whimclean.Domain.Results;
-using Athenex.Whimclean.Mediator;
-using Mediator;
-
-public sealed record SuspendTenantCommand(Guid TenantId, string Reason)
-    : ICommand<Result>, IAuditedCommand
-{
-    public AuditDescriptor Describe() => new(
-        Action: "Tenant.Suspend",
-        EntityType: "Tenant",
-        EntityId: TenantId.ToString(),
-        TenantId: TenantId,
-        Reason: Reason);
-}
-
-builder.Services.AddAuditing<Guid, Guid>();
-builder.Services.AddUnitOfWorkBehavior();
-builder.Services.AddScoped<IAuditLogWriter<Guid, Guid>, AuditLogWriter>();
-builder.Services.AddHttpAuditRequestContext();
-```
-
-`AddAuditing` ต้องเรียกก่อน `AddUnitOfWorkBehavior` เพื่อให้ audit behavior ครอบ unit of work และเห็นผลลัพธ์ที่ commit แล้ว `AddHttpAuditRequestContext` จาก `Auditing.AspNetCore` แทนที่ `NullAuditRequestContext` ค่าเริ่มต้นด้วยชื่อ actor, correlation id (`X-Correlation-Id`, `X-Request-Id` หรือ trace identifier), ที่อยู่ปลายทาง และ user agent ของ request
-
-## Result
+### result
 
 ```csharp
 using Athenex.Whimclean.Domain.Results;
@@ -210,9 +285,13 @@ Result<Guid> CreateOrder(bool isValid) => isValid
         Error.Validation("Order.Invalid", "The order is invalid."));
 ```
 
-การเข้าถึง `Value` ของ result ที่ล้มเหลวจะ throw `InvalidOperationException` ให้ตรวจ `IsSuccess` หรือ `IsFailure` ก่อนอ่านค่า
+การอ่าน `Value` จาก result ที่ล้มเหลวจะ throw `InvalidOperationException` ให้ตรวจ `IsSuccess` หรือ `IsFailure` ก่อน แพ็กเกจ API map แต่ละ `ErrorType` เป็น HTTP status code (ดู [สัญญา error](#สัญญา-error))
 
-## Query ในชั้น application
+## สัญญาในชั้น application
+
+### list query
+
+`ListQueryOptions` คือ input ที่ผ่านการตรวจสอบและ normalize แล้วของ list query แบบแบ่งหน้าด้วย offset มันตรวจขีดจำกัดของตัวเองและเปิดเผย collection แบบอ่านอย่างเดียวที่ materialize แล้ว โค้ดฝั่ง infrastructure จึงแปลงเฉพาะฟิลด์และ operator ที่อนุมัติแล้วไปเป็น query ของฐานข้อมูล:
 
 ```csharp
 using Athenex.Whimclean.Application.Queries;
@@ -225,9 +304,7 @@ var options = new ListQueryOptions(
     size: 20);
 ```
 
-query options ตรวจสอบขีดจำกัดของตัวเองและเปิดเผย collection แบบอ่านอย่างเดียวที่ materialize แล้ว ทำให้โค้ดฝั่ง infrastructure แปลงเฉพาะฟิลด์และ operator ที่อนุมัติแล้วไปเป็น query ของฐานข้อมูล
-
-`ListQueryParser` สร้าง options ชุดเดียวกันจากค่าดิบใน query string filter ใช้รูปแบบ `field:operator:value` ด้วย operator `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn`, `sw`, `ew` และ `in` (ค่าคั่นด้วยจุลภาค) ส่วน sort เป็นรายชื่อฟิลด์คั่นด้วยจุลภาค ใส่ `-` นำหน้าเพื่อเรียงจากมากไปน้อย `EnumFilter` ใน namespace เดียวกันแปลงค่าของ filter เป็นสมาชิกของ enum สำหรับนำไปแปลต่อ:
+`ListQueryParser` สร้าง options ชุดเดียวกันจากค่าดิบของ query string:
 
 ```csharp
 var parsed = ListQueryParser.Parse(
@@ -238,10 +315,17 @@ var parsed = ListQueryParser.Parse(
     size: 20);
 ```
 
-ใน API แบบ FastEndpoints ให้สืบทอด request จาก `ListQueryRequest` และ validator จาก `ListQueryRequestValidator<TRequest>` เพื่อกำหนดรายการฟิลด์ sort และ filter ที่อนุญาตของแต่ละ endpoint จากนั้น `ToListQueryOptions()` จะ parse request ที่ผ่านการตรวจสอบแล้ว:
+| input | ไวยากรณ์ |
+| --- | --- |
+| `sort` | ชื่อฟิลด์คั่นด้วยจุลภาค นำหน้าด้วย `-` เพื่อเรียงจากมากไปน้อย |
+| `filters` | หนึ่ง `field:operator:value` ต่อรายการ operator ได้แก่ `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew`, `in` (ค่าคั่นด้วยจุลภาค) |
+
+`EnumFilter` ใน namespace เดียวกัน แปลงค่าของ filter เป็นสมาชิกของ enum สำหรับการแปลงเป็น query
+
+**ใน API** ให้สืบทอด request จาก `ListQueryRequest` และ validator จาก `ListQueryRequestValidator<TRequest>` (ทั้งคู่อยู่ใน `Athenex.Whimclean.Api.AspNetCore.Queries`) เพื่อกำหนดรายการฟิลด์ sort และ filter ที่อนุญาตของแต่ละ endpoint `ToListQueryOptions()` จะ parse request ที่ผ่านการตรวจสอบแล้ว:
 
 ```csharp
-using Athenex.Whimclean.Api.FastEndpoints.Queries;
+using Athenex.Whimclean.Api.AspNetCore.Queries;
 using Athenex.Whimclean.Application.Queries;
 
 public sealed class ListOrdersRequest : ListQueryRequest;
@@ -259,9 +343,17 @@ public sealed class ListOrdersRequestValidator
             FilterOperator.LessThan);
     }
 }
+
+api.MapGet("orders", async (
+    [AsParameters] ListOrdersRequest request,
+    IOrderQueries queries,
+    CancellationToken cancellationToken) =>
+    Results.Ok(await queries.ListAsync(request.ToListQueryOptions(), cancellationToken)));
 ```
 
-แพ็กเกจ EF Core เป็นผู้แปล options: `SortFields<T>` map ชื่อ sort ที่อนุญาตไปยัง key selector, `SearchLike` (หรือ `SearchILike` จากแพ็กเกจ PostgreSQL) ค้นหาหลายคอลัมน์โดย escape wildcard ให้ และ `Page`/`ToPage` ใส่ offset และห่อผลลัพธ์:
+Minimal API bind request ด้วย `[AsParameters]` และ filter ตรวจสอบของ `MapApiGroup` รัน validator ที่ลงทะเบียนโดย `AddApiValidatorsFromAssembly` endpoint ของ FastEndpoints ใช้ request เดียวกันเป็น DTO และ FastEndpoints ค้นพบ validator เอง
+
+**ใน persistence** แพ็กเกจ EF Core แปลง options: `SortFields<T>` map ชื่อ sort ที่อนุญาตไปยัง key selector, `SearchLike` (หรือ `SearchILike` จากแพ็กเกจ PostgreSQL) ค้นหาหลายคอลัมน์โดย escape wildcard ให้ และ `Page`/`ToPage` ใส่ offset และห่อผลลัพธ์:
 
 ```csharp
 using Athenex.Whimclean.Application.Queries;
@@ -293,7 +385,7 @@ var items = await OrderSort
 return items.ToPage(options, totalItems);
 ```
 
-## Pagination
+### pagination
 
 ```csharp
 using Athenex.Whimclean.Application.Pagination;
@@ -305,11 +397,11 @@ var result = new OffsetPagedResult<string>(
     totalItems: 2);
 ```
 
-`Map` แปลงรายการในหน้าโดยคงหมายเลขหน้า ขนาด และยอดรวมไว้ ส่วน `KeysetPagedResult<T, TKey>` คือคู่ขนานแบบใช้ cursor
+`Map` แปลงรายการของหน้าโดยคงหมายเลขหน้า ขนาด และยอดรวมไว้ `KeysetPagedResult<T, TKey>` คือแบบ cursor ที่คู่กัน
 
-## อีเมล
+### อีเมล
 
-implement `IEmailSender` ในชั้น infrastructure หรือลงทะเบียน implementation แบบ SMTP ที่มาพร้อมแพ็กเกจ แล้วเรียกใช้จาก use case ในชั้น application:
+use case ในชั้น application ส่งผ่าน `IEmailSender` ให้ implement ในชั้น infrastructure หรือลงทะเบียน implementation แบบ SMTP ที่มาพร้อมแพ็กเกจ:
 
 ```csharp
 var message = new EmailMessage(
@@ -320,7 +412,7 @@ var message = new EmailMessage(
 await emailSender.SendAsync(message, cancellationToken);
 ```
 
-`Infrastructure.Email.Smtp` ส่งข้อความผ่าน `System.Net.Mail` พร้อม options สำหรับ host, port, credential, TLS และผู้ส่งเริ่มต้น ให้ bind `SmtpEmailOptions` จาก section `Email` และตรวจสอบตอนเริ่มระบบ:
+`Infrastructure.Email.Smtp` ส่งผ่าน `System.Net.Mail` พร้อม options สำหรับ host, port, credential, TLS และผู้ส่งเริ่มต้น bind `SmtpEmailOptions` จาก section `Email` และตรวจสอบตอนเริ่มระบบ:
 
 ```csharp
 using Athenex.Whimclean.Api.AspNetCore.Configuration;
@@ -333,7 +425,9 @@ builder.Services.AddValidatedOptions<SmtpEmailOptions>(
 builder.Services.AddSmtpEmailSender();
 ```
 
-## EF Core และ database provider
+## persistence ด้วย EF Core
+
+### context ของแอปพลิเคชัน
 
 สืบทอด context ของแอปพลิเคชันที่ไม่ใช้ tenant จาก `AuditableDbContext<TUserId, TActor>` โดย `TUserId` คือตัวระบุผู้ใช้ที่ยืนยันตัวตนแล้ว ส่วน `TActor` คือรูปแบบที่เก็บลงในฟิลด์ audit
 
@@ -359,7 +453,15 @@ public sealed class ApplicationDbContext(
 }
 ```
 
-ลงทะเบียน implementation ของผู้ใช้ปัจจุบันและตัวส่ง domain event `NullableAuditActorResolver<TUserId>` แปลง user ID ชนิด value type ที่ไม่เป็น null เช่น `Guid` ให้เป็นฟิลด์ audit แบบ nullable เช่น `Guid?`:
+context ทำงานดังนี้:
+
+- **การเขียนทุกครั้งต้องมีผู้ใช้** record ที่เพิ่ม แก้ไข หรือลบต้องมี `ICurrentUser<TUserId>` ที่ให้ผู้ใช้ได้ รวมถึง record ที่ไม่มี audit interface background job ลงทะเบียน system user อย่างชัดเจน เช่น `StaticCurrentUser<TUserId>` แทนการข้ามขอบเขตนี้
+- **ฟิลด์ audit ถูกประทับตอนบันทึก** ผ่าน `IAuditActorResolver<TUserId, TActor>`
+- **แถวที่ soft delete ถูกซ่อน** การ map ของแอปพลิเคชันใน `ConfigureModel` ทำงานก่อน filter ของ infrastructure context ฐานจึงค้นพบ entity ราก (root) ทุกตัวที่ implement `ISoftDelete<TActor>` และใส่ `SoftDeleteFilter` แบบมีชื่อให้ การ `Remove` จริงของ entity เช่นนี้ถูกปฏิเสธด้วย `InvalidOperationException` ให้ใช้การ soft delete ของ entity นั้นเอง `IncludeSoftDeleted()` ปิด filter นี้สำหรับ query เดียว
+- **domain event ถูกส่งหลังบันทึกสำเร็จ** แล้วจึงล้าง การบันทึกรองรับเฉพาะแบบ asynchronous event จึงไม่ถูกบังคับผ่าน sync-over-async
+- **concurrency failure ถูกแปลง** `DbUpdateConcurrencyException` ปรากฏเป็น `PersistenceConcurrencyException` ซึ่งชั้น API map เป็น HTTP 409
+
+### การลงทะเบียน
 
 ```csharp
 services.AddSingleton(TimeProvider.System);
@@ -371,9 +473,9 @@ services.AddScoped<IDomainEventDispatcher, MediatorDomainEventDispatcher>();
 services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(connectionString);
 ```
 
-`AddNullableAuditActorResolver<Guid>()`, `AddIdentityAuditActorResolver<Guid>()`, `AddDomainEventDispatcher()` และ `AddMediatorDomainEventDispatcher()` เป็นทางลัดที่เทียบเท่ากันและใช้ semantics แบบ `TryAdd`
+`NullableAuditActorResolver<TUserId>` แปลง id ผู้ใช้ชนิด value type ที่ไม่เป็น null เช่น `Guid` ไปเป็นฟิลด์ audit แบบ nullable เช่น `Guid?`; `IdentityAuditActorResolver<TActor>` ใช้เมื่อ id ผู้ใช้และ actor ที่เก็บใช้ชนิดเดียวกันที่ไม่เป็น null ทางลัด `AddNullableAuditActorResolver<Guid>()`, `AddIdentityAuditActorResolver<Guid>()`, `AddDomainEventDispatcher()` และ `AddMediatorDomainEventDispatcher()` ลงทะเบียน service ชุดเดียวกันด้วยพฤติกรรม `TryAdd`
 
-options เฉพาะของ Npgsql สำหรับ PostgreSQL อยู่ที่ขอบของ provider:
+options ของ Npgsql อยู่ที่ขอบของ provider:
 
 ```csharp
 services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(
@@ -381,16 +483,20 @@ services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(
     postgreSql => postgreSql.MigrationsAssembly("MyApp.Migrations.PostgreSQL"));
 ```
 
-หากต้องการใช้ provider อื่นก่อนที่ Whimclean จะมี adapter เฉพาะ ให้อ้างอิง `Athenex.Whimclean.Infrastructure.EntityFrameworkCore` บวกกับ provider นั้น แล้วตั้งค่าผ่านเมธอดลงทะเบียนร่วม:
+### provider อื่น
+
+อ้างอิง `Athenex.Whimclean.Infrastructure.EntityFrameworkCore` บวกกับ provider นั้น แล้วตั้งค่าผ่านเมธอดลงทะเบียนร่วม:
 
 ```csharp
 services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>((_, options) =>
     options.UseSqlServer(connectionString));
 ```
 
-วิธีนี้ยังคง `AuditableDbContext`, query filter ของ soft delete, ขอบเขต concurrency, การส่ง domain event และการลงทะเบียน `IUnitOfWork` ชุดเดิมไว้ เพิ่มแพ็กเกจ EF multitenancy แบบเลือกใช้ได้เมื่อต้องแยกข้อมูลตาม tenant สิ่งที่เปลี่ยนมีเพียงการตั้งค่า provider
+`AuditableDbContext`, query filter ของ soft delete, ขอบเขต concurrency, การส่ง domain event และการลงทะเบียน `IUnitOfWork` เป็นชุดเดียวกัน ต่างกันเพียงการตั้งค่า provider เพิ่มแพ็กเกจ EF multitenancy เมื่อต้องแยกข้อมูลตาม tenant
 
-image ของแอปพลิเคชันสามารถ apply migration ของตัวเองได้ `DatabaseMigration.IsRequested(args)` ตรวจจับสวิตช์ `--migrate` และ `MigrateDatabaseAsync<TContext>` apply migration ที่ค้างอยู่ พร้อม log ชื่อของมันและคืนค่าจำนวนที่รัน:
+### migration
+
+image ของแอปพลิเคชันรัน migration ของตัวเอง `DatabaseMigration.IsRequested(args)` ตรวจจับสวิตช์ `--migrate` และ `MigrateDatabaseAsync<TContext>` รัน migration ที่ค้างอยู่ โดย log ชื่อของแต่ละตัวและคืนจำนวนที่รัน:
 
 ```csharp
 using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Operations;
@@ -404,9 +510,11 @@ if (DatabaseMigration.IsRequested(args))
 }
 ```
 
-### การยืนยันตัวตนและผู้ใช้ปัจจุบัน
+## การยืนยันตัวตนและผู้ใช้ปัจจุบัน
 
-Whimclean ไม่เก็บผู้ใช้ credential หรือ token ให้ยืนยันตัวตนกับ identity provider ภายนอก (Keycloak, Microsoft Entra ID, Auth0) หรือต่อ ASP.NET Core Identity โดยตรงกับ API ของ Microsoft เอง ไม่ว่าทางใด ไลบรารีรับเฉพาะ principal ที่ยืนยันตัวตนแล้วผ่าน `ICurrentUser<TUserId>`
+Whimclean ไม่เก็บผู้ใช้ credential หรือ token ให้ยืนยันตัวตนกับ identity provider ภายนอก (Keycloak, Microsoft Entra ID, Auth0) หรือต่อ ASP.NET Core Identity โดยตรงกับ API ของ Microsoft เอง ไม่ว่าทางใด library รับเฉพาะ principal ที่ยืนยันตัวตนแล้วผ่าน `ICurrentUser<TUserId>`
+
+### ผู้ใช้ปัจจุบันจาก claim
 
 สำหรับ scheme ใดก็ตามที่เติมค่า `HttpContext.User` `Api.AspNetCore` มี implementation ที่อิง claim ให้:
 
@@ -422,9 +530,11 @@ builder.Services
 builder.Services.AddClaimsCurrentUser<Guid>();
 ```
 
-ชนิด claim เริ่มต้นคือ `ClaimTypes.NameIdentifier` ส่ง `options => options.ClaimType = "sub"` เมื่อปิด inbound claim mapping การลงทะเบียนใช้ `TryAddScoped` ดังนั้น `ICurrentUser<TUserId>` ที่แอปพลิเคชันจัดหาเองจะชนะ
+ชนิด claim เริ่มต้นคือ `ClaimTypes.NameIdentifier` ส่ง `options => options.ClaimType = "sub"` เมื่อปิด inbound claim mapping การลงทะเบียนใช้ `TryAddScoped` ดังนั้น `ICurrentUser<TUserId>` ที่แอปพลิเคชันจัดให้เองจะชนะ
 
-`Identity.Keycloak` แทนที่การตั้งค่า JWT bearer ที่เขียนเองด้วย `AddKeycloakAuthentication` ซึ่ง bind จาก section `Keycloak` (`Authority`, `Audience`, `MetadataAddress` แบบเลือกใส่, `RequireHttpsMetadata`, `NameClaimType`, `RoleClaimType`) มันปิด inbound claim mapping เพื่อให้ `sub` ยังคงเป็น `sub` ตรึง issuer ที่ถูกต้องไว้ที่ `Authority` และลงทะเบียนบริการ authorization ให้ด้วย ส่วน `AddKeycloakAdministration` เพิ่ม `IKeycloakUserAdministration` ซึ่งเป็น typed client บน admin API ที่ใช้ service account จาก section `KeycloakAdmin`:
+### Keycloak
+
+`Identity.Keycloak` แทนที่การตั้งค่า JWT bearer ที่เขียนเองด้วย `AddKeycloakAuthentication` ซึ่ง bind จาก section `Keycloak` (`Authority`, `Audience`, `MetadataAddress` แบบเลือกใส่, `RequireHttpsMetadata`, `NameClaimType`, `RoleClaimType`) มันปิด inbound claim mapping เพื่อให้ `sub` ยังคงเป็น `sub` ตรึง issuer ที่ถูกต้องไว้ที่ `Authority` และลงทะเบียนบริการ authorization ให้ด้วย `AddKeycloakAdministration` เพิ่ม `IKeycloakUserAdministration` ซึ่งเป็น typed client บน admin API ที่ใช้ service account จาก section `KeycloakAdmin`:
 
 ```csharp
 using Athenex.Whimclean.Api.AspNetCore;
@@ -435,7 +545,9 @@ builder.Services.AddKeycloakAdministration(builder.Configuration);
 builder.Services.AddClaimsCurrentUser<Guid>(options => options.ClaimType = "sub");
 ```
 
-เมื่อแอปพลิเคชันมีตารางผู้ใช้ของตัวเองและ token มีเพียง subject ของ identity provider ให้ใช้ `AddLocalUserResolution<TUserId>` แทนผู้ใช้ปัจจุบันแบบอิง claim middleware จะ map claim ของ subject ไปยัง id ภายในผ่าน `ILocalUserLookup<TUserId>` ของแอปพลิเคชัน แล้วบันทึกลงใน `RequestCurrentUser<TUserId>` แบบ scoped ส่วน subject ที่ไม่มีผู้ใช้ภายในจะปล่อยให้ผู้ใช้ปัจจุบันว่างไว้ วาง middleware หลังการยืนยันตัวตนและก่อนสิ่งใดก็ตามที่อ่านผู้ใช้ปัจจุบัน:
+### ผู้ใช้ปัจจุบันจากตารางผู้ใช้ภายใน
+
+เมื่อแอปพลิเคชันมีตารางผู้ใช้ของตัวเองและ token มีเพียง subject ของ identity provider ให้ใช้ `AddLocalUserResolution<TUserId>` แทนผู้ใช้ปัจจุบันแบบอิง claim middleware จะ map claim ของ subject ไปยัง id ภายในผ่าน `ILocalUserLookup<TUserId>` ของแอปพลิเคชัน แล้วบันทึกลงใน `RequestCurrentUser<TUserId>` แบบ scoped subject ที่ไม่มีผู้ใช้ภายในจะปล่อยให้ผู้ใช้ปัจจุบันว่างไว้ วาง middleware หลังการยืนยันตัวตนและก่อนสิ่งใดก็ตามที่อ่านผู้ใช้ปัจจุบัน:
 
 ```csharp
 using Athenex.Whimclean.Api.AspNetCore;
@@ -449,17 +561,49 @@ app.UseLocalUserResolution<Guid>();
 app.UseAuthorization();
 ```
 
-ทุกรายการที่ถูกเพิ่ม แก้ไข หรือลบ ต้องให้ `ICurrentUser<TUserId>` ระบุผู้ใช้ได้ รวมถึงรายการที่ไม่ได้ implement interface ด้าน audit งานเบื้องหลังควรลงทะเบียน implementation ของผู้ใช้ระบบอย่างชัดเจน เช่น `StaticCurrentUser<TUserId>` แทนการข้ามขอบเขตการเขียนไปเงียบ ๆ ส่วน `ICurrentUserInitializer<TUserId>` ให้โค้ด bootstrap กำหนดผู้ใช้ของ `RequestCurrentUser<TUserId>` แบบ scoped ได้ `IdentityAuditActorResolver<TActor>` ใช้ได้เมื่อ ID ของผู้ใช้ปัจจุบันและ actor ที่เก็บใช้ชนิดที่ไม่เป็น null ชนิดเดียวกัน
+`ICurrentUserInitializer<TUserId>` ให้โค้ด bootstrap ตั้งผู้ใช้ของ `RequestCurrentUser<TUserId>` แบบ scoped ได้หลังจาก resolve ผู้ใช้ของตนเอง
 
-`AuditableDbContext<TUserId, TActor>` รองรับการบันทึกแบบ asynchronous เท่านั้น เพื่อไม่ให้ domain event ถูกบังคับผ่านการรันแบบ sync-over-async
+## command, event และ audit log
 
-การ map ของแอปพลิเคชันใน `ConfigureModel` ทำงานก่อน query filter ของ infrastructure ทำให้ context ฐานค้นพบ entity ที่ลงทะเบียนผ่าน `ApplyConfigurationsFromAssembly` เท่านั้นได้ แล้วจึงใส่ `SoftDeleteFilter` ให้ entity ราก (root) ทุกตัวที่ implement `ISoftDelete<TActor>` filter นี้ซ่อนแถวที่ถูกลบ ไม่ได้แปลง `Remove` จริงให้เป็น soft delete แต่การ remove entity ที่รองรับ soft delete จะถูกปฏิเสธด้วย `InvalidOperationException` จึงต้องใช้การ soft delete ของ entity นั้นเอง `IncludeSoftDeleted()` ปิดเฉพาะ filter นี้สำหรับ query เดียว
+### Mediator
 
-ความล้มเหลวของ optimistic concurrency ใน EF Core ถูกเปิดเผยเป็น `PersistenceConcurrencyException` ทำให้ exception เฉพาะของ EF อยู่ภายใน infrastructure ขณะที่ชั้น API ยังตอบ HTTP 409 ได้
+`Athenex.Whimclean.Mediator` ผสานกับ [Mediator](https://github.com/martinothamar/Mediator) `AddUnitOfWorkBehavior` ลงทะเบียน pipeline behavior ที่ commit unit of work หลังแต่ละ command ที่สำเร็จ และ `MediatorDomainEventDispatcher` (ลงทะเบียนโดย `AddMediatorDomainEventDispatcher`) ส่ง domain event เป็น notification ของ Mediator แอปพลิเคชันเป็นผู้จัดหา `Mediator.SourceGenerator`
 
-### Multitenancy แบบเลือกใช้ได้
+### audit log ของ command
 
-ติดตั้ง adapter เสริมของ EF และ API เฉพาะในแอปพลิเคชันที่รองรับ tenant ผู้ใช้งานเป็นเจ้าของ entity `Tenant` และ `TenantMembership` วงจรชีวิตของมัน และ query สำหรับ membership ส่วน Whimclean ให้ขอบเขตที่เชื่อมการตัดสินใจเหล่านั้นเข้ากับการอนุญาตและการแยกข้อมูลใน EF หัวข้อนี้ครอบคลุมโมเดลการแยกเชิงตรรกะ (logical isolation) ที่มาพร้อมแพ็กเกจ ส่วน[คู่มือตั้งค่า multitenancy](docs/multitenancy-setup-TH.md) อธิบายโมเดลการแยกทั้งสามแบบ — เชิงตรรกะ (schema ร่วม), schema ต่อ tenant และฐานข้อมูลต่อ tenant
+แพ็กเกจเสริม `Auditing` บันทึกผลลัพธ์ของ command ไม่ใช่ฟิลด์ของแถว command implement `IAuditedCommand`; `AuditCommandBehavior` เขียนรายการ `AuditLog<TUserId, TTenantId>` ผ่าน `IAuditLogWriter<TUserId, TTenantId>` ของแอปพลิเคชันนอก unit of work ของ command นั้น; handler ของ domain event เพิ่มการเปลี่ยนแปลงของฟิลด์ผ่าน `IAuditChangeCollector`:
+
+```csharp
+using Athenex.Whimclean.Auditing;
+using Athenex.Whimclean.Auditing.AspNetCore;
+using Athenex.Whimclean.Domain.Results;
+using Athenex.Whimclean.Mediator;
+using Mediator;
+
+public sealed record SuspendTenantCommand(Guid TenantId, string Reason)
+    : ICommand<Result>, IAuditedCommand
+{
+    public AuditDescriptor Describe() => new(
+        Action: "Tenant.Suspend",
+        EntityType: "Tenant",
+        EntityId: TenantId.ToString(),
+        TenantId: TenantId,
+        Reason: Reason);
+}
+
+builder.Services.AddAuditing<Guid, Guid>();
+builder.Services.AddUnitOfWorkBehavior();
+builder.Services.AddScoped<IAuditLogWriter<Guid, Guid>, AuditLogWriter>();
+builder.Services.AddHttpAuditRequestContext();
+```
+
+`AddAuditing` ต้องเรียกก่อน `AddUnitOfWorkBehavior` เพื่อให้ audit behavior ครอบ unit of work และเห็นผลลัพธ์ที่ commit แล้ว `AddHttpAuditRequestContext` จาก `Auditing.AspNetCore` แทนที่ `NullAuditRequestContext` ค่าเริ่มต้นด้วยชื่อ actor, correlation id (`X-Correlation-Id`, `X-Request-Id` หรือ trace identifier), ที่อยู่ปลายทาง และ user agent ของ request
+
+## multitenancy
+
+ติดตั้งแพ็กเกจ multitenancy ของ EF และ API เฉพาะในแอปพลิเคชันที่ใช้ tenant ผู้ใช้งานเป็นเจ้าของ entity `Tenant` และ `TenantMembership` วงจรชีวิตของมัน และ query สำหรับสมาชิกภาพ ส่วน Whimclean ให้ขอบเขตที่เชื่อมการตัดสินใจเหล่านั้นเข้ากับการอนุญาตและการแยกข้อมูลใน EF หัวข้อนี้ครอบคลุมรูปแบบการแยกข้อมูลเชิงตรรกะที่มาพร้อมแพ็กเกจ [คู่มือตั้งค่า multitenancy](docs/multitenancy-setup-TH.md) อธิบายครบทั้งสามรูปแบบ: เชิงตรรกะ (schema ร่วม), schema ต่อ tenant และฐานข้อมูลต่อ tenant
+
+### context ของ tenant
 
 context ธุรกิจของ tenant สืบทอดจาก `MultiTenantDbContext<TUserId, TActor, TTenantId>`:
 
@@ -490,7 +634,23 @@ public sealed class ApplicationDbContext(
 }
 ```
 
-implement access validator ในโปรเจกต์ infrastructure ของผู้ใช้งาน ที่นี่คือจุดที่แอปพลิเคชันใช้กฎของตัวเองเรื่องสถานะ membership สถานะ tenant วันหมดอายุ บทบาท หรือการระงับ:
+entity ที่ implement `IMultiTenant<TTenantId>` ได้รับ `TenantFilter` แบบมีชื่อที่ fail-closed: หากไม่มี current tenant ที่ผ่านการอนุญาต query จะไม่คืน record ของ tenant ใดเลย record ของ tenant ที่เพิ่ม แก้ไข หรือลบต้องตรงกับ current tenant และเปลี่ยน `TenantId` ไม่ได้ context ตรวจสอบแต่ไม่เขียนทับ
+
+query ของผู้ดูแลระบบต้องมีการอนุญาตแยกต่างหาก และปิดเฉพาะ filter ที่จำเป็น:
+
+```csharp
+var includingDeleted = dbContext.Orders
+    .IgnoreQueryFilters(["SoftDeleteFilter"]);
+
+var acrossTenants = dbContext.Orders
+    .IgnoreQueryFilters(["TenantFilter"]);
+```
+
+filter แบบมีชื่ออีกตัวยังทำงานในแต่ละ query `QueryFilterNames.SoftDelete` และ `QueryFilterNames.Tenant` เก็บชื่อของ filter ทั้งสอง
+
+### การตรวจสอบสิทธิ์เข้าถึง
+
+implement access validator ในโปรเจกต์ infrastructure ของผู้ใช้งาน ที่นี่คือจุดที่แอปพลิเคชันใส่กฎของตัวเองเรื่องสถานะสมาชิกภาพ สถานะ tenant วันหมดอายุ บทบาท หรือการระงับ:
 
 ```csharp
 public sealed class TenantMembershipAccessValidator(
@@ -510,10 +670,12 @@ public sealed class TenantMembershipAccessValidator(
 }
 ```
 
-ลงทะเบียน adapter เสริมใน composition root ของ API:
+### การ resolve tenant ใน API
+
+ลงทะเบียนการเชื่อมต่อกับ API ใน composition root:
 
 ```csharp
-builder.Services.AddFastEndpointsApi();
+builder.Services.AddMinimalApi();
 builder.Services.AddAspNetCoreMultitenancy<Guid, Guid>();
 builder.Services.AddHeaderTenantResolution<Guid>(options =>
     options.HeaderName = "X-Tenant-Id");
@@ -522,27 +684,26 @@ builder.Services.AddScoped<
     TenantMembershipAccessValidator>();
 ```
 
-แปลง tenant ที่ถูกร้องขอหลังการยืนยันตัวตนและก่อนการอนุญาต แล้วป้องกัน endpoint ของ tenant ด้วย policy ที่ให้มา:
+resolve tenant ที่ถูกร้องขอหลังการยืนยันตัวตนและก่อนการอนุญาต แล้วป้องกัน endpoint ของ tenant ด้วย policy ที่ให้มา:
 
 ```csharp
 app.UseAuthentication();
 app.UseTenantResolution<Guid>();
 app.UseAuthorization();
-app.UseFastEndpointsApi();
+app.UseMinimalApi();
 
-public sealed class ListOrdersEndpoint : EndpointWithoutRequest
-{
-    public override void Configure()
-    {
-        Get("orders");
-        Policies(MultitenancyPolicies.TenantMember);
-    }
-}
+app.MapApiGroup()
+    .MapGet("orders", (IOrderQueries queries) => Results.Ok(queries.List()))
+    .RequireAuthorization(MultitenancyPolicies.TenantMember);
 ```
 
-resolver แบบ header ถือค่าของมันเป็นเพียง tenant ที่ถูกร้องขอ และต้องมี header นั้นเพียงครั้งเดียว: header ที่หายไปหรือซ้ำกันจะไม่ได้ tenant ใดเลย `ICurrentTenant<TTenantId>` ยังคงว่างจนกว่าผู้ใช้ที่ยืนยันตัวตนแล้วจะผ่าน `ITenantAccessValidator` ผู้เรียกจึงเลือก tenant ที่ไม่ได้รับอนุญาตเพียงแค่เปลี่ยน header ไม่ได้ resolver แบบ host, route หรือ claim สามารถแทนที่ `IRequestedTenantResolver<TTenantId>` ได้โดยไม่ต้องแก้ชั้น EF
+endpoint ของ FastEndpoints ใช้ policy เดียวกันด้วย `Policies(MultitenancyPolicies.TenantMember)` ในเมธอด `Configure`
 
-การ deploy ที่ให้บริการแต่ละ tenant จาก path หรือ hostname จะส่งต่อ slug มาใน header `AddSlugTenantResolution()` (ไม่มี generic) ตั้งค่า header ของ slug ซึ่งมีค่าเริ่มต้นเป็น `X-Tenant-Slug` และ `UseSlugTenantResolution<TTenantId>()` map slug ที่ trim และแปลงเป็นตัวพิมพ์เล็กแล้วไปยัง id ของ tenant ผ่าน `ITenantSlugLookup<TTenantId>` ของแอปพลิเคชัน middleware ของ slug จะไม่บันทึกอะไรเมื่อมี tenant ที่ถูกร้องขออยู่แล้ว ดังนั้น header ของ id มีลำดับความสำคัญสูงกว่าเมื่อตั้งค่าทั้งสองแบบ:
+resolver แบบ header ถือค่าของมันเป็นเพียง tenant *ที่ถูกร้องขอ* และต้องมี header นั้นเพียงครั้งเดียว: header ที่หายไปหรือซ้ำกันจะไม่ได้ tenant ใดเลย `ICurrentTenant<TTenantId>` ยังว่างจนกว่าผู้ใช้ที่ยืนยันตัวตนแล้วจะผ่าน `ITenantAccessValidator` ผู้เรียกจึงเลือก tenant ที่ไม่ได้รับอนุญาตเพียงแค่เปลี่ยน header ไม่ได้ resolver แบบ host, route หรือ claim สามารถแทนที่ `IRequestedTenantResolver<TTenantId>` ได้โดยไม่ต้องแก้ชั้น EF
+
+### การ resolve จาก slug
+
+การ deploy ที่ให้บริการแต่ละ tenant จาก path หรือ hostname ส่งต่อ slug มาใน header `AddSlugTenantResolution()` ตั้งค่า header ของ slug (ค่าเริ่มต้น `X-Tenant-Slug`) และ `UseSlugTenantResolution<TTenantId>()` map slug ที่ trim และแปลงเป็นตัวพิมพ์เล็กแล้วไปยัง id ของ tenant ผ่าน `ITenantSlugLookup<TTenantId>` ของแอปพลิเคชัน middleware ของ slug จะไม่บันทึกอะไรเมื่อมี tenant ที่ถูกร้องขออยู่แล้ว ดังนั้น header ของ id มีลำดับความสำคัญสูงกว่าเมื่อตั้งค่าทั้งสองแบบ:
 
 ```csharp
 builder.Services.AddSlugTenantResolution();
@@ -554,35 +715,48 @@ app.UseSlugTenantResolution<Guid>();
 app.UseAuthorization();
 ```
 
-host ที่ไม่มีการแปลง tenant จาก HTTP (worker, seeder) ลงทะเบียน `AmbientCurrentTenant<TTenantId>` แล้วห่องานที่ผูกกับ tenant ไว้ใน `AmbientCurrentTenant<TTenantId>.Begin(tenantId)`
+### host ที่ไม่ใช่ HTTP
 
-entity ที่ implement `IMultiTenant<TTenantId>` จะได้รับ `TenantFilter` แบบมีชื่อที่ fail-closed หากไม่มี current tenant ที่ได้รับอนุญาต query จะไม่คืนรายการของ tenant ใดเลย รายการของ tenant ที่ถูกเพิ่ม แก้ไข หรือลบต้องตรงกับ current tenant และห้ามเปลี่ยน `TenantId` context ตรวจสอบแต่ไม่เขียนทับค่า query ฝั่งผู้ดูแลต้องได้รับอนุญาตแยกต่างหาก และปิดได้เฉพาะ filter ที่จำเป็นบน EF Core 10:
+worker และ seeder ลงทะเบียน `AmbientCurrentTenant<TTenantId>` แล้วห่องานที่ผูกกับ tenant ไว้ใน `AmbientCurrentTenant<TTenantId>.Begin(tenantId)`
+
+## API host
+
+### Minimal API
+
+`Api.AspNetCore` ลงทะเบียนการจัดการ error ร่วม เอกสาร OpenAPI และ validator ของ FluentValidation ของแอปพลิเคชัน แล้ว map endpoint เข้า group `/api/v1` ซึ่งตรวจสอบอาร์กิวเมนต์ของ handler ทุกตัวที่มี validator ลงทะเบียนไว้:
 
 ```csharp
-var includingDeleted = dbContext.Orders
-    .IgnoreQueryFilters(["SoftDeleteFilter"]);
+builder.Services.AddMinimalApi();
+builder.Services.AddApiValidatorsFromAssemblyContaining<Program>();
 
-var acrossTenants = dbContext.Orders
-    .IgnoreQueryFilters(["TenantFilter"]);
+app.UseMinimalApi();
+
+var api = app.MapApiGroup();
+api.MapGet("orders/{id:guid}", async (Guid id, IMediator mediator) =>
+{
+    var result = await mediator.Send(new GetOrderQuery(id));
+    return result.ToHttpResult(order => Results.Ok(order));
+});
 ```
 
-filter แบบมีชื่ออีกตัวยังคงทำงานในแต่ละ query `QueryFilterNames.SoftDelete` และ `QueryFilterNames.Tenant` เก็บชื่อของ filter ทั้งสอง
+| ความต้องการ | เมธอด |
+| --- | --- |
+| route prefix อื่น | `MapApiGroup("api/v2")` |
+| ไม่เปิด endpoint ของ OpenAPI | `UseMinimalApi(openApiRoutePattern: null)` |
+| ปรับแต่งเอกสาร | `AddMinimalApi(openApi => ...)` |
+| ตรวจสอบ endpoint ที่ map นอก group | `.WithRequestValidation()` |
 
-## API แบบ FastEndpoints
+### adapter ของ FastEndpoints
 
-ลงทะเบียน FastEndpoints, OpenAPI, exception handler ของ Whimclean และบริการ problem-details ของ ASP.NET Core:
+แอปพลิเคชันที่เขียนด้วย FastEndpoints ลงทะเบียน adapter แทน adapter ต่อยอดจากแพ็กเกจหลัก ดังนั้นสัญญา error, สัญญา list query และ response ของ validation เหมือนกันทุกประการ:
 
 ```csharp
 builder.Services.AddFastEndpointsApi();
-```
 
-ใส่ route prefix เริ่มต้น `/api/v1`, exception middleware, การจัดการ response ที่ว่างเปล่าตาม status, การ bind filter ของ list query แบบทั้งค่า และสัญญา error response ของ Whimclean:
-
-```csharp
 app.UseFastEndpointsApi();
 ```
 
-แอปพลิเคชันเปลี่ยน prefix และเพิ่มการตั้งค่า FastEndpoints เฉพาะผลิตภัณฑ์ได้:
+`UseFastEndpointsApi` ใส่ route prefix เริ่มต้น `/api/v1`, การจัดการ error ร่วม, การ bind filter ของ list query แบบทั้งค่า และ response ของ validation แบบ Whimclean prefix และการตั้งค่า FastEndpoints ปรับได้:
 
 ```csharp
 app.UseFastEndpointsApi(
@@ -593,25 +767,36 @@ app.UseFastEndpointsApi(
     });
 ```
 
-map error ของแอปพลิเคชันภายใน endpoint ด้วย `result.Error.ToHttpResult()`
+### สัญญา error
 
-exception ที่ขอบเขต infrastructure, ความล้มเหลวของ validation และ response ที่ว่างเปล่าจากการอนุญาต/routing ใช้รูปแบบ `ApiErrorResponse` เดียวกัน:
+error ของแอปพลิเคชันกลายเป็น HTTP response ด้วย `result.ToHttpResult(...)` หรือ `error.ToHttpResult()`: `Validation` 400, `Unauthorized` 401, `Forbidden` 403, `NotFound` 404, `Conflict` 409, `Failure` 500
+
+exception ที่ขอบเขต infrastructure, ความล้มเหลวของ validation และ response ที่ว่างเปล่าจากการอนุญาตหรือ routing ใช้ body `ApiErrorResponse` เดียวกัน:
+
+```json
+{
+  "code": "Resource.NotFound",
+  "description": "The requested resource was not found.",
+  "errors": null
+}
+```
 
 | เงื่อนไข | HTTP | รหัส error |
 | --- | ---: | --- |
 | `CurrentUserRequiredException` | 401 | `Authentication.CurrentUserRequired` |
 | `PersistenceConcurrencyException` | 409 | `Persistence.ConcurrentUpdate` |
-| validation ของ FastEndpoints ล้มเหลว | 400 | `Validation.Failed` |
+| validation ล้มเหลว (filter ของ Minimal API หรือ FastEndpoints) | 400 | `Validation.Failed` |
+| response 400 ที่ว่างเปล่า | 400 | `Request.Invalid` |
 | response 401 ที่ว่างเปล่า | 401 | `Authentication.Unauthorized` |
 | response 403 ที่ว่างเปล่า | 403 | `Authorization.Forbidden` |
 | response 404 ที่ว่างเปล่า | 404 | `Resource.NotFound` |
 | exception ที่ไม่คาดคิด | 500 | `Server.UnexpectedError` |
 
-การติดตั้งและลงทะเบียน `Api.AspNetCore.Multitenancy` เพิ่ม `CurrentTenantRequiredException` → 403 `Tenancy.CurrentTenantRequired` และ `TenantAccessViolationException` → 403 `Tenancy.AccessDenied` โดยไม่ผูกแพ็กเกจ API พื้นฐานเข้ากับ multitenancy
+`Api.AspNetCore.Multitenancy` เพิ่ม `CurrentTenantRequiredException` → 403 `Tenancy.CurrentTenantRequired` และ `TenantAccessViolationException` → 403 `Tenancy.AccessDenied` โดยไม่ผูกแพ็กเกจ API พื้นฐานเข้ากับ multitenancy รายละเอียดของ exception ที่ไม่คาดคิดถูก log ไว้ ไม่ส่งกลับให้ client
 
-รายละเอียดของ exception ที่ไม่คาดคิดถูก log ไว้แต่ไม่ส่งกลับให้ client
+### งานปฏิบัติการ
 
-`Api.AspNetCore` ยังมีตัวช่วยด้าน operations ที่ host ของ API ต้องใช้: `MapHealthEndpoints` map endpoint แบบไม่ต้องยืนยันตัวตน `/health/live` และ `/health/ready` (readiness รันเฉพาะ health check ที่ติด tag `HealthCheckTags.Ready` และทั้งคู่ได้รับยกเว้นจาก rate limit), `AddRequestRateLimiting` เพิ่ม fixed window ทั่วทั้งระบบต่อผู้เรียกจาก section `RateLimiting` (`PermitLimit` ค่าเริ่มต้น 300; `WindowSeconds` ค่าเริ่มต้น 60; ตรวจสอบผ่าน `RequestRateLimitOptions.Validate()`) ใช้คู่กับ `app.UseRateLimiter()`, `AddValidatedOptions` bind คลาส options และตรวจสอบตอนเริ่มระบบ และ `ConfigurationPlaceholder.IsUnset` ตรวจจับเครื่องหมาย `<set-via-user-secrets>` ที่ยังค้างอยู่ในการตั้งค่าที่ commit ไว้ (`AddDbContextCheck` มาจาก `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore`):
+`Api.AspNetCore` ยังมีตัวช่วยที่ host ของ API ต้องใช้:
 
 ```csharp
 using Athenex.Whimclean.Api.AspNetCore.Operations;
@@ -624,3 +809,16 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.MapHealthEndpoints();
 ```
+
+| ตัวช่วย | พฤติกรรม |
+| --- | --- |
+| `MapHealthEndpoints` | map endpoint แบบไม่ต้องยืนยันตัวตน `/health/live` และ `/health/ready`; readiness รันเฉพาะ health check ที่ติด tag `HealthCheckTags.Ready`; ทั้งคู่ได้รับยกเว้นจาก rate limit `AddDbContextCheck` มาจาก `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore` |
+| `AddRequestRateLimiting` | fixed window ทั่วทั้งระบบต่อผู้เรียกจาก section `RateLimiting` (`PermitLimit` ค่าเริ่มต้น 300; `WindowSeconds` ค่าเริ่มต้น 60) ตรวจสอบผ่าน `RequestRateLimitOptions.Validate()` ใช้คู่กับ `app.UseRateLimiter()` |
+| `AddValidatedOptions` | bind คลาส options กับ section และตรวจสอบตอนเริ่มระบบ |
+| `ConfigurationPlaceholder.IsUnset` | ตรวจจับเครื่องหมาย `<set-via-user-secrets>` ที่ยังค้างอยู่ในการตั้งค่าที่ commit ไว้ |
+
+## อ่านเพิ่มเติม
+
+- README ของแต่ละแพ็กเกจ ลิงก์อยู่ใน [แพ็กเกจ](#แพ็กเกจ)
+- [คู่มือตั้งค่า multitenancy](docs/multitenancy-setup-TH.md): การแยกข้อมูลเชิงตรรกะ, schema ต่อ tenant และฐานข้อมูลต่อ tenant
+- [การอัปเกรดเป็น 1.3.0](docs/upgrading-to-1.3-TH.md): การแทนที่ helper ที่แอปพลิเคชันเขียนเองด้วยแพ็กเกจ

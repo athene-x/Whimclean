@@ -108,13 +108,13 @@ This package does not depend on EF Core, ASP.NET Core Identity, a database provi
 | `filters` | `field:operator:value`, one per repeated parameter | `filters=status:in:Active,Suspended` |
 | `page`, `size` | one-based page and page size | `page=2&size=20` |
 
-Operators are `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` and `in` (comma-separated values); operator codes are case-insensitive. `Parse`, `ParseSort` and `ParseFilters` throw `FormatException` on bad input, while `TryParseFilter` and `TryParseSort` report a readable error without throwing, which the FastEndpoints package uses for validation.
+Operators are `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` and `in` (comma-separated values); operator codes are case-insensitive. `Parse`, `ParseSort` and `ParseFilters` throw `FormatException` on bad input, while `TryParseFilter` and `TryParseSort` report a readable error without throwing, which the API package uses for validation.
 
 ```csharp
 var options = ListQueryParser.Parse(searchTerm, sort, filters, page, size);
 ```
 
-`EnumFilter` (in `Athenex.Whimclean.Application.Queries`) parses filter values into enum members case-insensitively and rejects undefined values: `TryParse<TEnum>` handles one value and `Parse<TEnum>` keeps the valid members of a list. The API validator (`AllowEnumFilterField<TEnum>` in the FastEndpoints package) and the persistence filter therefore agree on which names are valid.
+`EnumFilter` (in `Athenex.Whimclean.Application.Queries`) parses filter values into enum members case-insensitively and rejects undefined values: `TryParse<TEnum>` handles one value and `Parse<TEnum>` keeps the valid members of a list. The API validator (`AllowEnumFilterField<TEnum>` in `Athenex.Whimclean.Api.AspNetCore`) and the persistence filter therefore agree on which names are valid.
 
 `WhereActive()` in `ActivatableQueryExtensions` filters an `IQueryable<T>` or `IEnumerable<T>` of `IActivatable` entities down to the active ones.
 
