@@ -1,5 +1,7 @@
 # Multitenancy setup guide
 
+[ภาษาไทย](multitenancy-setup-TH.md)
+
 How to set up a Whimclean application for each of the three tenant-isolation models:
 
 | | Case 1: Logical isolation | Case 2: Schema isolation | Case 3: Database isolation |
@@ -45,6 +47,8 @@ builder.Services
 builder.Services.AddClaimsCurrentUser<Guid>();
 ```
 
+When user ids are local rows rather than the token subject, use `AddLocalUserResolution<Guid>()` with an `ILocalUserLookup<Guid>` over the user table instead, and add `app.UseLocalUserResolution<Guid>()` after `UseAuthentication()`.
+
 ### 3. Own the tenant model and the membership decision
 
 The `Tenant` and `TenantMembership` entities, their lifecycle, and the membership query are yours. Whimclean only asks one question through `ITenantAccessValidator<TUserId, TTenantId>`:
@@ -83,6 +87,8 @@ app.UseAuthentication();
 app.UseTenantResolution<Guid>(); // records the *requested* tenant — no authorization yet
 app.UseAuthorization();          // TenantMember policy validates and establishes the *current* tenant
 ```
+
+When the web tier forwards a tenant slug instead of an id, also call `builder.Services.AddSlugTenantResolution()` (default header `X-Tenant-Slug`), register an `ITenantSlugLookup<Guid>` over the tenant table, and add `app.UseSlugTenantResolution<Guid>()` after `UseTenantResolution<Guid>()`. The slug is consulted only when no requested tenant was recorded, so an explicit `X-Tenant-Id` wins.
 
 Protect tenant endpoints with the supplied policy:
 
@@ -218,7 +224,7 @@ public sealed class TenantSearchPathInterceptor(ICurrentTenant<Guid> currentTena
 
 ### Register the interceptor
 
-The interceptor needs the scoped `ICurrentTenant`, so register through the provider-neutral method (the `AddPostgreSqlUnitOfWork` shortcut has no options hook):
+The interceptor needs the scoped `ICurrentTenant`, so register through the provider-neutral method. The `AddPostgreSqlUnitOfWork` shortcut only exposes an optional `NpgsqlDbContextOptionsBuilder` action, not the service provider or the `DbContextOptionsBuilder` that `AddInterceptors` lives on:
 
 ```csharp
 builder.Services.AddScoped<TenantSearchPathInterceptor>();
@@ -315,23 +321,22 @@ builder.Services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>(
 
 ### Migrations (one run per database)
 
+The connection resolver above already picks the database from the current tenant, so iterate the catalog under an ambient tenant scope and resolve the context from the container:
+
 ```csharp
-foreach (var tenant in await catalog.GetTenantsAsync())
+foreach (var tenantId in await catalog.GetTenantIdsAsync())
 {
-    var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-        .UseNpgsql(tenant.ConnectionString)
-        .Options;
-
-    await using var dbContext = new ApplicationDbContext(
-        options,
-        TimeProvider.System,
-        new StaticCurrentUser<Guid>(SystemUserId),
-        new NullableAuditActorResolver<Guid>(),
-        new NullDomainEventDispatcher()); // migrations dispatch nothing
-
-    await dbContext.Database.MigrateAsync();
+    using (AmbientCurrentTenant<Guid>.Begin(tenantId))
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+        await dbContext.Database.MigrateAsync();
+    }
 }
 ```
+
+As in case 2, run this from a maintenance host that registers `AmbientCurrentTenant<Guid>` and `StaticCurrentUser<Guid>` (section “Non-HTTP hosts”); migrations dispatch no domain events.
 
 ---
 

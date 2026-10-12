@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean ASP.NET Core Multitenancy</Title>
     <Description>Framework-neutral ASP.NET Core multitenancy integration with requested-tenant resolution, membership authorization, authorized tenant context, and API error mapping; works with FastEndpoints or Minimal APIs.</Description>
     <PackageTags>aspnetcore;multitenancy;tenant;authorization;middleware</PackageTags>
-    <PackageReleaseNotes>Renamed from Athenex.Whimclean.Api.FastEndpoints.Multitenancy; the package never depended on FastEndpoints and now builds on Athenex.Whimclean.Api.AspNetCore.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds slug-based tenant resolution: a middleware that maps a slug header to the tenant id through ITenantSlugLookup, with an id header taking precedence when both are configured.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

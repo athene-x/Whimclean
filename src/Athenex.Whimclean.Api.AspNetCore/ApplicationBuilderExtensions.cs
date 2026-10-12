@@ -1,3 +1,4 @@
+using Athenex.Whimclean.Api.AspNetCore.Context;
 using Athenex.Whimclean.Api.AspNetCore.Errors;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -50,4 +51,19 @@ public static class ApplicationBuilderExtensions
 
         return app;
     }
+
+    /// <summary>
+    /// Adds <see cref="LocalUserResolutionMiddleware{TUserId}" />, which
+    /// maps the authenticated subject to the local user registered
+    /// through <see cref="DependencyInjection.AddLocalUserResolution{TUserId}" />.
+    /// Place after <c>UseAuthentication</c> and before anything that reads
+    /// the current user, such as tenant resolution and authorization.
+    /// </summary>
+    /// <typeparam name="TUserId">Type of the local user identifier.</typeparam>
+    /// <param name="app">The application pipeline to configure.</param>
+    /// <returns>The same builder, for chaining.</returns>
+    public static IApplicationBuilder UseLocalUserResolution<TUserId>(
+        this IApplicationBuilder app)
+        where TUserId : notnull =>
+        app.UseMiddleware<LocalUserResolutionMiddleware<TUserId>>();
 }

@@ -1,6 +1,8 @@
 # Athenex.Whimclean.Multitenancy.Abstractions
 
-Dependency-free contracts for optional multitenancy. The consuming application owns tenant management; this package defines only integration boundaries.
+[ภาษาไทย](README-TH.md)
+
+Dependency-free contracts for optional multitenancy. The consuming application owns tenant management; this package defines only integration boundaries. All types live in the `Athenex.Whimclean.Multitenancy` namespace.
 
 ## Install
 
@@ -22,14 +24,16 @@ public sealed class Order : IMultiTenant<Guid>
 }
 ```
 
-`IMultiTenant<TTenantId>` indicates data ownership. The optional EF adapter uses it for query filtering and write validation.
+`IMultiTenant<TTenantId>` indicates data ownership through a read-only `TenantId`. The optional EF adapter uses it for query filtering and write validation.
 
 ## Requested tenant versus current tenant
 
 - `IRequestedTenant<TTenantId>` represents an untrusted tenant selected by a header, route, host, or similar request input.
 - `ICurrentTenant<TTenantId>` represents the tenant established only after authorization.
 
-Keeping these contracts separate prevents request input from automatically becoming an authorized data boundary.
+Both expose `TryGetTenantId(out TTenantId tenantId)`, which returns `false` when no tenant is present. Keeping these contracts separate prevents request input from automatically becoming an authorized data boundary.
+
+`AmbientCurrentTenant<TTenantId>` is an `ICurrentTenant<TTenantId>` backed by an async-local scope for hosts without HTTP tenant resolution, such as background workers or seeders: wrap tenant-scoped work in `using (AmbientCurrentTenant<Guid>.Begin(tenantId))`. Scopes nest, disposing restores the previous tenant, and the caller vouches for the tenant because no access validation happens there.
 
 ## Consumer-owned access validation
 
@@ -53,7 +57,7 @@ public sealed class TenantMembershipAccessValidator(
 }
 ```
 
-The consumer owns:
+Implementations should fail closed and return `false` for unknown users or tenants. The consumer owns:
 
 - `Tenant` and `TenantMembership` entities
 - tenant creation, suspension, and deletion
@@ -61,7 +65,7 @@ The consumer owns:
 - subscription or entitlement rules
 - administrative cross-tenant authorization
 
-The package also defines `CurrentTenantRequiredException` and `TenantAccessViolationException` for fail-closed persistence boundaries.
+The package also defines `CurrentTenantRequiredException` (tenant-owned changes are about to be persisted without an established current tenant) and `TenantAccessViolationException` (a save would change a record owned by another tenant) for fail-closed persistence boundaries.
 
 This package has no Domain, Application, EF Core, ASP.NET Core, Identity, or database-provider dependency.
 

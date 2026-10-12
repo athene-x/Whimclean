@@ -41,19 +41,12 @@ public sealed class HeaderRequestedTenantResolver<TTenantId>(
         HttpContext httpContext,
         out TTenantId tenantId)
     {
-        var values = httpContext.Request.Headers[options.Value.HeaderName];
-
-        // A repeated tenant header is ambiguous; resolve no tenant rather
-        // than silently picking one of the conflicting values.
-        if (values.Count != 1)
+        if (!TenantHeader.TryGetSingleValue(httpContext.Request, options.Value.HeaderName, out var value))
         {
             tenantId = default!;
             return false;
         }
 
-        return TTenantId.TryParse(
-            values[0],
-            CultureInfo.InvariantCulture,
-            out tenantId!);
+        return TTenantId.TryParse(value, CultureInfo.InvariantCulture, out tenantId!);
     }
 }

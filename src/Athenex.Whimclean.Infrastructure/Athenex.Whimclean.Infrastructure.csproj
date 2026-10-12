@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Infrastructure</Title>
     <Description>Provider-neutral infrastructure building blocks for Whimclean applications, including audit actor resolution and asynchronous domain-event dispatch.</Description>
     <PackageTags>infrastructure;clean-architecture;auditing;domain-events</PackageTags>
-    <PackageReleaseNotes>Adds provider-neutral audit actor resolution and asynchronous domain-event dispatch contracts.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds DeterministicGuid for stable seed identifiers.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

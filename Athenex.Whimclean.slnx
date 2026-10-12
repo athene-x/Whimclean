@@ -13,6 +13,14 @@
   <Folder Name="/extensions/messaging/">
     <Project Path="src/Athenex.Whimclean.Mediator/Athenex.Whimclean.Mediator.csproj" />
   </Folder>
+  <Folder Name="/extensions/auditing/">
+    <Project Path="src/Athenex.Whimclean.Auditing/Athenex.Whimclean.Auditing.csproj" />
+    <Project Path="src/Athenex.Whimclean.Auditing.AspNetCore/Athenex.Whimclean.Auditing.AspNetCore.csproj" />
+  </Folder>
+  <Folder Name="/extensions/integrations/">
+    <Project Path="src/Athenex.Whimclean.Infrastructure.Email.Smtp/Athenex.Whimclean.Infrastructure.Email.Smtp.csproj" />
+    <Project Path="src/Athenex.Whimclean.Identity.Keycloak/Athenex.Whimclean.Identity.Keycloak.csproj" />
+  </Folder>
   <Folder Name="/extensions/api/">
     <Project Path="src/Athenex.Whimclean.Api.AspNetCore/Athenex.Whimclean.Api.AspNetCore.csproj" />
     <Project Path="src/Athenex.Whimclean.Api.AspNetCore.Multitenancy/Athenex.Whimclean.Api.AspNetCore.Multitenancy.csproj" />
@@ -30,5 +38,9 @@
     <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Tests/Athenex.Whimclean.Api.AspNetCore.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests/Athenex.Whimclean.Api.AspNetCore.Multitenancy.Tests.csproj" />
     <Project Path="tests/Athenex.Whimclean.Api.FastEndpoints.Tests/Athenex.Whimclean.Api.FastEndpoints.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Auditing.Tests/Athenex.Whimclean.Auditing.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Auditing.AspNetCore.Tests/Athenex.Whimclean.Auditing.AspNetCore.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Infrastructure.Email.Smtp.Tests/Athenex.Whimclean.Infrastructure.Email.Smtp.Tests.csproj" />
+    <Project Path="tests/Athenex.Whimclean.Identity.Keycloak.Tests/Athenex.Whimclean.Identity.Keycloak.Tests.csproj" />
   </Folder>
 </Solution>

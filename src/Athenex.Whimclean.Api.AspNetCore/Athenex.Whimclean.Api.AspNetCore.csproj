@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean ASP.NET Core API</Title>
     <Description>Framework-neutral ASP.NET Core API conventions for Whimclean applications: consistent exception, status-code, and result error responses usable from FastEndpoints or Minimal APIs, plus claims-based current-user resolution for any authentication scheme.</Description>
     <PackageTags>aspnetcore;api;exception-handling;result;error-handling;problem-details;current-user;claims</PackageTags>
-    <PackageReleaseNotes>Adds claims-based current-user resolution alongside the framework-neutral error contract, exception handling, status-code responses, and result mapping.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds local user resolution (subject to local id through ILocalUserLookup), liveness and readiness endpoints, per-caller rate limiting, validated options bound from configuration, and the configuration placeholder marker.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

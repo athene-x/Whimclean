@@ -75,4 +75,44 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>
+    /// Registers <see cref="RequestCurrentUser{TUserId}" /> as the scoped
+    /// <see cref="ICurrentUser{TUserId}" /> (via <c>TryAddScoped</c>, so
+    /// an existing registration wins) and as
+    /// <see cref="ICurrentUserInitializer{TUserId}" />, for applications
+    /// whose user identifier lives in a local table keyed by the token's
+    /// subject. The application registers an
+    /// <see cref="ILocalUserLookup{TUserId}" /> and adds
+    /// <see cref="ApplicationBuilderExtensions.UseLocalUserResolution{TUserId}" />
+    /// after authentication.
+    /// </summary>
+    /// <typeparam name="TUserId">Type of the local user identifier.</typeparam>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configure">
+    /// Optional customization of
+    /// <see cref="ClaimsCurrentUserOptions" />, which names the subject
+    /// claim to look up. Defaults to <see langword="null" />.
+    /// </param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection AddLocalUserResolution<TUserId>(
+        this IServiceCollection services,
+        Action<ClaimsCurrentUserOptions>? configure = null)
+        where TUserId : notnull
+    {
+        services.AddOptions<ClaimsCurrentUserOptions>();
+
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
+
+        services.TryAddScoped<RequestCurrentUser<TUserId>>();
+        services.TryAddScoped<ICurrentUser<TUserId>>(provider =>
+            provider.GetRequiredService<RequestCurrentUser<TUserId>>());
+        services.TryAddScoped<ICurrentUserInitializer<TUserId>>(provider =>
+            provider.GetRequiredService<RequestCurrentUser<TUserId>>());
+
+        return services;
+    }
 }

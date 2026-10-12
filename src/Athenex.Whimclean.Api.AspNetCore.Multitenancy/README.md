@@ -1,5 +1,7 @@
 # Athenex.Whimclean.Api.AspNetCore.Multitenancy
 
+[ภาษาไทย](README-TH.md)
+
 Optional ASP.NET Core tenant resolution and membership authorization for Whimclean APIs.
 
 ## Install
@@ -8,7 +10,7 @@ Optional ASP.NET Core tenant resolution and membership authorization for Whimcle
 dotnet add package Athenex.Whimclean.Api.AspNetCore.Multitenancy
 ```
 
-The package depends on `Api.AspNetCore` for consistent tenant error responses and on the dependency-free multitenancy contracts. It contains no FastEndpoints code and works with FastEndpoints or Minimal APIs alike.
+The package depends on `Athenex.Whimclean.Api.AspNetCore` for consistent tenant error responses and on the dependency-free multitenancy contracts in `Athenex.Whimclean.Multitenancy.Abstractions`. It contains no FastEndpoints code and works with FastEndpoints or Minimal APIs alike.
 
 ## Implement membership validation
 
@@ -35,12 +37,14 @@ public sealed class TenantMembershipAccessValidator(
 }
 ```
 
-Include tenant state, membership expiry, suspension, or entitlement checks here when required.
+Include tenant state, membership expiry, suspension, or entitlement checks here when required. Implementations should fail closed: return `false` for unknown users or tenants.
 
 ## Register the API integration
 
 ```csharp
 using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
+using Athenex.Whimclean.Api.FastEndpoints;
+using Athenex.Whimclean.Multitenancy;
 
 builder.Services.AddFastEndpointsApi();
 builder.Services.AddAspNetCoreMultitenancy<Guid, Guid>();
@@ -55,10 +59,12 @@ The first generic argument is the current-user ID type. The second is the tenant
 
 `AddAspNetCoreMultitenancy` registers:
 
-- scoped requested/current tenant context
-- the `TenantMember` authorization policy
+- the scoped `TenantContext<TTenantId>`, exposed as both `IRequestedTenant<TTenantId>` and `ICurrentTenant<TTenantId>`
+- the `TenantMember` authorization policy (the name can be changed through the `policyName` parameter; `MultitenancyPolicies.TenantMember` holds the default)
 - the membership authorization handler
 - tenant exception mappings for the standard API error shape
+
+`AddHeaderTenantResolution<TTenantId>` registers `HeaderRequestedTenantResolver<TTenantId>` as the `IRequestedTenantResolver<TTenantId>` (via `TryAddScoped`, so an existing resolver wins). The header name defaults to `X-Tenant-Id` (`HeaderTenantResolutionOptions.HeaderName`), and the value is parsed with the invariant culture. Exactly one header value is required: a missing header resolves nothing, and a repeated header is treated as ambiguous and resolves nothing.
 
 ## Middleware order
 
@@ -76,6 +82,7 @@ The resolver only records a requested tenant. `ICurrentTenant<Guid>` remains emp
 ## Protect tenant endpoints
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
 using FastEndpoints;
 
 public sealed class ListOrdersEndpoint : EndpointWithoutRequest
@@ -98,6 +105,9 @@ Tenant-aware EF contexts resolved during the endpoint receive the authorized `IC
 Replace the header resolver by implementing `IRequestedTenantResolver<TTenantId>`:
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
+using Microsoft.AspNetCore.Http;
+
 public sealed class RouteTenantResolver
     : IRequestedTenantResolver<Guid>
 {
@@ -116,8 +126,38 @@ Do not call `AddHeaderTenantResolution` when a custom resolver is the only desir
 
 - `CurrentTenantRequiredException` → 403 `Tenancy.CurrentTenantRequired`
 - `TenantAccessViolationException` → 403 `Tenancy.AccessDenied`
-- a missing or rejected requested tenant fails the `TenantMember` policy and produces the standard empty-403 mapping
+- a missing or rejected requested tenant fails the `TenantMember` policy and produces the standard 403 body (`Authorization.Forbidden`)
 
 The package does not create tenant tables, manage memberships, or decide whether Identity users are global or tenant-local. The recommended default is global authentication users plus consumer-owned tenant memberships.
+
+## Resolve the tenant from a slug
+
+Deployments that serve each tenant from a path (`/acme/...`) or hostname forward the slug in a header; the API maps it to the tenant id:
+
+```csharp
+using Athenex.Whimclean.Api.AspNetCore.Multitenancy;
+using Microsoft.EntityFrameworkCore;
+
+public sealed class TenantSlugLookup(ApplicationDbContext dbContext) : ITenantSlugLookup<Guid>
+{
+    public async ValueTask<Guid> FindBySlugAsync(string slug, CancellationToken ct = default) =>
+        await dbContext.Tenants
+            .Where(tenant => tenant.Slug == slug)
+            .Select(tenant => tenant.Id)
+            .SingleOrDefaultAsync(ct);
+}
+
+builder.Services.AddAspNetCoreMultitenancy<Guid, Guid>();
+builder.Services.AddHeaderTenantResolution<Guid>();          // optional: X-Tenant-Id still works
+builder.Services.AddSlugTenantResolution();                  // X-Tenant-Slug
+builder.Services.AddScoped<ITenantSlugLookup<Guid>, TenantSlugLookup>();
+
+app.UseAuthentication();
+app.UseTenantResolution<Guid>();
+app.UseSlugTenantResolution<Guid>();
+app.UseAuthorization();
+```
+
+`AddSlugTenantResolution` is not generic: it only registers `SlugTenantResolutionOptions` (header name, default `X-Tenant-Slug`); the tenant id type is given to `UseSlugTenantResolution<TTenantId>` and `ITenantSlugLookup<TTenantId>`. The slug arrives trimmed and lower-cased. The slug middleware records nothing when a tenant was already resolved, so an explicit id header wins, and a default (empty) identifier means no such tenant. As with the id header, exactly one slug header value is required; a repeated header resolves nothing. Like the header resolver it only records a claim; membership is still validated by the `TenantMember` policy.
 
 Repository and full architecture guide: https://github.com/athene-x/Whimclean

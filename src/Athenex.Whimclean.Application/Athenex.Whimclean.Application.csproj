@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Application</Title>
     <Description>Application-layer abstractions for request context, email, pagination, persistence, and validated list queries.</Description>
     <PackageTags>application-layer;clean-architecture;email;pagination;queries;unit-of-work</PackageTags>
-    <PackageReleaseNotes>Removes the unused request-context contract, adds GetRequiredUserId, richer filter operators with verbatim values, a bounded facet limit, null-element boundary checks, and a multi-recipient email message with attachments.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds ListQueryParser for the field:operator:value filter and -field sort syntax, EnumFilter, OffsetPagedResult.Map, and ICurrentUserInitializer for hosts that set the current user outside a request.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

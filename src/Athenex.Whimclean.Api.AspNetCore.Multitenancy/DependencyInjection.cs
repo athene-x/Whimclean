@@ -109,4 +109,37 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>
+    /// Registers the options for
+    /// <see cref="SlugTenantResolutionMiddleware{TTenantId}"/>, which
+    /// resolves the requested tenant from a slug header (default
+    /// <c>X-Tenant-Slug</c>) through the application's
+    /// <see cref="ITenantSlugLookup{TTenantId}"/>. Register that lookup
+    /// separately and add
+    /// <see cref="ApplicationBuilderExtensions.UseSlugTenantResolution{TTenantId}"/>
+    /// to the pipeline. May be combined with
+    /// <see cref="AddHeaderTenantResolution{TTenantId}"/>; an identifier
+    /// header then takes precedence over the slug.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configure">
+    /// Optional customization of
+    /// <see cref="SlugTenantResolutionOptions"/>, e.g. to change the
+    /// header name. Defaults to <see langword="null"/>.
+    /// </param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection AddSlugTenantResolution(
+        this IServiceCollection services,
+        Action<SlugTenantResolutionOptions>? configure = null)
+    {
+        services.AddOptions<SlugTenantResolutionOptions>();
+
+        if (configure is not null)
+        {
+            services.Configure(configure);
+        }
+
+        return services;
+    }
 }

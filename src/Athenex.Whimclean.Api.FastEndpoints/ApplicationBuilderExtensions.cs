@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Athenex.Whimclean.Api.AspNetCore;
 using Athenex.Whimclean.Api.AspNetCore.Errors;
+using Athenex.Whimclean.Api.FastEndpoints.Queries;
 using FastEndpoints;
 using Microsoft.AspNetCore.Builder;
 
@@ -16,7 +17,9 @@ public static class ApplicationBuilderExtensions
     /// shared error handling from <c>UseApiErrorHandling</c>, plus
     /// FastEndpoints with the given route prefix and with validation
     /// failures rendered as the shared <see cref="ApiErrorResponse"/>
-    /// (code <c>"Validation.Failed"</c>, camelCase field names). Requires
+    /// (code <c>"Validation.Failed"</c>, camelCase field names), and list
+    /// query filters bound whole
+    /// (<see cref="ListQueryBinding.KeepListQueryFiltersWhole"/>). Requires
     /// the services added by
     /// <see cref="DependencyInjection.AddFastEndpointsApi"/>.
     /// </summary>
@@ -49,6 +52,7 @@ public static class ApplicationBuilderExtensions
         app.UseFastEndpoints(options =>
         {
             options.Endpoints.RoutePrefix = routePrefix;
+            options.Binding.KeepListQueryFiltersWhole();
             options.Errors.ProducesMetadataType = typeof(ApiErrorResponse);
             options.Errors.ResponseBuilder = (failures, _, _) =>
                 new ApiErrorResponse(

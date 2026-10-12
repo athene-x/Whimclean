@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Domain</Title>
     <Description>Domain-driven design abstractions for entities, aggregate roots, domain events, auditing, soft deletion, and operation results.</Description>
     <PackageTags>ddd;domain-driven-design;aggregate-root;domain-events;auditing;result</PackageTags>
-    <PackageReleaseNotes>Moves multitenancy contracts to the optional Multitenancy.Abstractions package while retaining the focused domain building blocks.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds AuditableEntity and AuditableAggregateRoot base classes with the audit fields the EF infrastructure stamps, and TextNormalizer for whitespace and slug normalization.</PackageReleaseNotes>
   </PropertyGroup>
 
 </Project>

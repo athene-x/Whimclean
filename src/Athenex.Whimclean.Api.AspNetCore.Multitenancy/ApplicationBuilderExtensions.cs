@@ -22,4 +22,19 @@ public static class ApplicationBuilderExtensions
         this IApplicationBuilder app)
         where TTenantId : notnull =>
         app.UseMiddleware<TenantResolutionMiddleware<TTenantId>>();
+
+    /// <summary>
+    /// Adds <see cref="SlugTenantResolutionMiddleware{TTenantId}"/>, which
+    /// records the requested tenant from the slug header when none was
+    /// recorded yet. Place after <c>UseAuthentication</c> and after
+    /// <see cref="UseTenantResolution{TTenantId}"/> when both are used, and
+    /// before <c>UseAuthorization</c>.
+    /// </summary>
+    /// <typeparam name="TTenantId">Type of the tenant identifier.</typeparam>
+    /// <param name="app">The application pipeline to configure.</param>
+    /// <returns>The same builder, for chaining.</returns>
+    public static IApplicationBuilder UseSlugTenantResolution<TTenantId>(
+        this IApplicationBuilder app)
+        where TTenantId : notnull =>
+        app.UseMiddleware<SlugTenantResolutionMiddleware<TTenantId>>();
 }

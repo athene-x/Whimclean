@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Athenex Whimclean SMTP Email</Product>
+    <Title>Athenex Whimclean SMTP Email</Title>
+    <Description>SMTP implementation of the Whimclean IEmailSender contract over System.Net.Mail, with validated options for host, port, credentials, TLS and sender.</Description>
+    <PackageTags>email;smtp;infrastructure</PackageTags>
+    <PackageReleaseNotes>First release: SMTP email sender and options.</PackageReleaseNotes>
+
+    <!-- First ships in 1.3.0; there is no earlier version to validate against. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Athenex.Whimclean.Application/Athenex.Whimclean.Application.csproj" />
+  </ItemGroup>
+
+</Project>

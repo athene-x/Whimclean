@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Entity Framework Core PostgreSQL</Title>
     <Description>PostgreSQL provider integration for Whimclean EF Core infrastructure, including Npgsql configuration and DbContext registration.</Description>
     <PackageTags>entity-framework-core;postgresql;npgsql;dependency-injection</PackageTags>
-    <PackageReleaseNotes>Adds PostgreSQL and Npgsql registration for ordinary and unit-of-work EF Core contexts.</PackageReleaseNotes>
+    <PackageReleaseNotes>Adds SearchILike, a case-insensitive multi-field search over ILIKE with escaped wildcards.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
