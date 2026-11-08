@@ -52,42 +52,15 @@ Result<Guid> CreateOrder(bool valid) => valid
 
 Available error factories are `Error.Failure`, `Error.Validation`, `Error.NotFound`, `Error.Conflict`, `Error.Unauthorized` and `Error.Forbidden`; each sets the matching `ErrorType`. Check `IsSuccess` or `IsFailure` before reading `Result<TValue>.Value`, which throws on a failed result. Values and errors convert implicitly to results, and `Match`, `Map` and `Bind` chain results without unwrapping them.
 
-## Auditing and behaviors
+## Behaviors
 
-Implement only the contracts the entity needs:
+`IActivatable` (an `IsActive` flag, in `Athenex.Whimclean.Domain.Behaviors`) marks records an operator can switch on and off. Inactive rows stay visible unless a query opts in with `WhereActive()` from the Application package.
 
-```csharp
-using Athenex.Whimclean.Domain.Auditables;
-using Athenex.Whimclean.Domain.Behaviors;
+## Persistence concerns are not in this package
 
-public sealed class OrderAudit : IAuditable<Guid?>, ISoftDelete<Guid?>
-{
-    public DateTimeOffset CreatedAt { get; set; }
-    public Guid? CreatedBy { get; set; }
-    public DateTimeOffset? UpdatedAt { get; set; }
-    public Guid? UpdatedBy { get; set; }
-    public bool IsDeleted { get; set; }
-    public DateTimeOffset? DeletedAt { get; set; }
-    public Guid? DeletedBy { get; set; }
-}
-```
-
-The contracts are read-only; the EF infrastructure stamps the values at save time. `IAuditable<TActor>` combines `ICreateAuditable<TActor>` and `IUpdateAuditable<TActor>`, which may be implemented separately. The actor type carries its own nullability, so applications may store `Guid?`, `string?`, or a custom actor value. `IActivatable` (an `IsActive` flag) is the third behavior; inactive rows stay visible unless a query opts in with `WhereActive()` from the Application package.
+Audit stamps (`CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`) and soft deletion (`IsDeleted`, `DeletedAt`, `DeletedBy`) are shadow properties managed by `AuditableDbContext` in `Athenex.Whimclean.Infrastructure.EntityFrameworkCore`. An entity type opts into them with `HasAuditStamps()` and `HasSoftDelete()` in the EF model configuration, so aggregates declare no persistence fields. An aggregate that needs a value such as `CreatedAt` for a business rule may declare that property itself; the context then stamps the declared property instead of adding a shadow one.
 
 This package contains no EF Core, ASP.NET Core, Identity, PostgreSQL, or multitenancy dependency.
-
-## Auditable base classes
-
-`AuditableEntity<TId, TActor>` and `AuditableAggregateRoot<TId, TActor>` declare the `CreatedAt`, `CreatedBy`, `UpdatedAt` and `UpdatedBy` properties that the EF infrastructure stamps, so entity types do not repeat them:
-
-```csharp
-using Athenex.Whimclean.Domain.Entities;
-
-public sealed class Tenant : AuditableAggregateRoot<Guid, Guid?>
-{
-    private Tenant(Guid id) : base(id) { }
-}
-```
 
 ## Text normalization
 

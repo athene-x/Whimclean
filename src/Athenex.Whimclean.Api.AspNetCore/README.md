@@ -175,7 +175,7 @@ if (!result.IsValid)
 | `page` | One-based page number | `1` |
 | `size` | Items per page | `10` |
 
-The `sort` and `filters` syntax is documented with `ListQueryParser` in `Athenex.Whimclean.Application`.
+`ListQueryParser` in `Athenex.Whimclean.Api.AspNetCore.Queries` turns these raw values into `ListQueryOptions`. `sort` is a comma-separated list of field names with a `-` prefix for descending; each `filters` entry is `field:operator:value` with the operators `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` and `in` (comma-separated values); operator codes are case-insensitive. `Parse`, `ParseSort` and `ParseFilters` throw `FormatException` on bad input; `TryParseFilter` and `TryParseSort` report a readable error without throwing, which `ListQueryRequestValidator<TRequest>` uses.
 
 ### Defining the request and validator
 

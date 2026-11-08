@@ -1,7 +1,8 @@
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
+using Athenex.Whimclean.Application.Queries;
 
-namespace Athenex.Whimclean.Application.Queries;
+namespace Athenex.Whimclean.Api.AspNetCore.Queries;
 
 /// <summary>
 /// Parses the raw query-string values of a list request into a

@@ -97,22 +97,9 @@ The consuming infrastructure project owns SMTP or provider-specific delivery.
 
 This package does not depend on EF Core, ASP.NET Core Identity, a database provider, or multitenancy.
 
-## Parse list queries from a query string
+## Query-string parsing lives in the API package
 
-`ListQueryParser` turns the raw query-string values of a list endpoint into `ListQueryOptions`, so every API shares one syntax:
-
-| Parameter | Format | Example |
-| --- | --- | --- |
-| `searchTerm` | free text | `searchTerm=acme` |
-| `sort` | comma-separated fields, `-` prefix for descending | `sort=name,-createdAt` |
-| `filters` | `field:operator:value`, one per repeated parameter | `filters=status:in:Active,Suspended` |
-| `page`, `size` | one-based page and page size | `page=2&size=20` |
-
-Operators are `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` and `in` (comma-separated values); operator codes are case-insensitive. `Parse`, `ParseSort` and `ParseFilters` throw `FormatException` on bad input, while `TryParseFilter` and `TryParseSort` report a readable error without throwing, which the API package uses for validation.
-
-```csharp
-var options = ListQueryParser.Parse(searchTerm, sort, filters, page, size);
-```
+The `field:operator:value` filter syntax and the `-field` sort syntax belong to the HTTP edge, so `ListQueryParser` is in `Athenex.Whimclean.Api.AspNetCore.Queries` (moved there in 2.0). This package holds the parsed model only: `ListQueryOptions`, `SortTerm`, `FilterTerm`, `FilterOperator`, `SortDirection` and `FacetQueryOptions`.
 
 `EnumFilter` (in `Athenex.Whimclean.Application.Queries`) parses filter values into enum members case-insensitively and rejects undefined values: `TryParse<TEnum>` handles one value and `Parse<TEnum>` keeps the valid members of a list. The API validator (`AllowEnumFilterField<TEnum>` in `Athenex.Whimclean.Api.AspNetCore`) and the persistence filter therefore agree on which names are valid.
 

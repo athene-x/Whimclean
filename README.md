@@ -2,13 +2,20 @@
 
 [ภาษาไทย](README-TH.md)
 
-Whimclean is a set of .NET 10 building blocks for business applications: a domain model with aggregates, domain events and audit fields; application-layer contracts for queries, pagination and email; provider-neutral EF Core persistence with a PostgreSQL adapter; optional multitenancy; and an ASP.NET Core Minimal API host with a FastEndpoints adapter.
+Whimclean is a set of .NET 10 building blocks for business applications: a domain model with aggregates and domain events; application-layer contracts for queries, pagination and email; provider-neutral EF Core persistence with a PostgreSQL adapter; optional multitenancy; and an ASP.NET Core Minimal API host with a FastEndpoints adapter.
 
 Three decisions shape the library:
 
 - **Authentication is bring-your-own.** Applications authenticate with an external identity provider (Keycloak, Microsoft Entra ID, Auth0) or with ASP.NET Core Identity, and Whimclean consumes only the resulting principal through `ICurrentUser<TUserId>`. It stores no users, credentials or tokens.
 - **Dependencies point one way.** Provider, API and tenant packages depend on the neutral packages, never the reverse, so a provider or endpoint style can be swapped without touching the domain or application layers.
 - **One API contract.** `Athenex.Whimclean.Api.AspNetCore` is the primary API package, built on Minimal APIs. `Athenex.Whimclean.Api.FastEndpoints` adapts the same error body, validation responses and list query contract to FastEndpoints.
+- **The domain model carries no persistence concerns.** Since 2.0, audit stamps and soft deletion are EF Core shadow properties that an entity type opts into in the model configuration; the Domain package declares none of them.
+
+### Design decisions and trade-offs
+
+- **Mediator is part of the stack.** `Athenex.Whimclean.Mediator` couples command handlers to `Mediator.Abstractions` on purpose: the library is source-generated, has no runtime reflection, and is treated like the runtime rather than like a replaceable detail. Applications that reject the dependency use the dispatcher in `Athenex.Whimclean.Infrastructure` and call `IUnitOfWork.CommitAsync` from their own handlers.
+- **Audit stamps and soft deletion are persistence concerns.** They live in shadow properties managed by `AuditableDbContext`, so aggregates never declare `CreatedAt` or `IsDeleted` unless the business rules need them.
+- **Domain events are dispatched in-process after the commit.** There is no outbox, so delivery is at-most-once across process failures; applications that need delivery guarantees add an outbox in their own context.
 
 ## Contents
 
@@ -32,8 +39,8 @@ Each package has its own README with installation, boundaries and examples.
 
 | Package | Provides | Depends on |
 | --- | --- | --- |
-| [`Domain`](src/Athenex.Whimclean.Domain/README.md) | Entities, aggregate roots, domain events, audit fields, soft deletion, `Result` and `Error`, text normalization. | none |
-| [`Application`](src/Athenex.Whimclean.Application/README.md) | Current-user and current-context contracts, email abstractions, pagination models, persistence contracts, validated list query options and the `ListQueryParser` syntax. | `Domain` |
+| [`Domain`](src/Athenex.Whimclean.Domain/README.md) | Entities, aggregate roots, domain events, `Result` and `Error`, text normalization. | none |
+| [`Application`](src/Athenex.Whimclean.Application/README.md) | Current-user and current-context contracts, email abstractions, pagination models, persistence contracts, validated list query options. | `Domain` |
 | [`Infrastructure`](src/Athenex.Whimclean.Infrastructure/README.md) | Provider-neutral audit actor resolution, the in-process domain-event pipeline, deterministic seed identifiers. | `Domain` |
 | [`Multitenancy.Abstractions`](src/Athenex.Whimclean.Multitenancy.Abstractions/README.md) | Tenant marker and current-tenant contracts, access validation, an ambient current tenant for non-HTTP hosts, tenant boundary exceptions. | none |
 
@@ -248,31 +255,29 @@ public sealed class Order : AggregateRoot<Guid>
 
 Raised events are exposed through `DomainEvents`. Clearing them is an infrastructure concern: `ClearDomainEvents()` is reachable only through `IHasDomainEvents`, and the EF Core context calls it after a successful save, before dispatching the events.
 
-### Audit fields
+### Audit stamps and soft deletion
 
-`IAuditable<TActor>` declares the four audit fields. The actor type carries its own nullability, so an application can store an identifier, a name or a custom actor type:
+The domain model does not declare audit or soft-delete properties. An entity type opts into them in the EF Core model configuration, and `AuditableDbContext` adds them as shadow properties typed with its own `TActor`:
 
 ```csharp
-using Athenex.Whimclean.Domain.Auditables;
+using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence;
 
-public sealed class OrderAudit : IAuditable<Guid?>
+modelBuilder.Entity<Order>(builder =>
 {
-    public DateTimeOffset CreatedAt { get; init; }
-    public Guid? CreatedBy { get; init; }
-    public DateTimeOffset? UpdatedAt { get; init; }
-    public Guid? UpdatedBy { get; init; }
-}
-
-public sealed class ImportAudit : IAuditable<string?>
-{
-    public DateTimeOffset CreatedAt { get; init; }
-    public string? CreatedBy { get; init; }
-    public DateTimeOffset? UpdatedAt { get; init; }
-    public string? UpdatedBy { get; init; }
-}
+    builder.HasAuditStamps();   // CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
+    builder.HasSoftDelete();    // IsDeleted, DeletedAt, DeletedBy + SoftDeleteFilter
+});
 ```
 
-`AuditableEntity<TId, TActor>` and `AuditableAggregateRoot<TId, TActor>` declare the fields once, so derived entities do not repeat them. The EF Core context stamps the values at save time.
+Queries read the shadow values by name:
+
+```csharp
+var recent = await dbContext.Orders
+    .OrderByDescending(order => EF.Property<DateTimeOffset>(order, AuditStampNames.CreatedAt))
+    .ToListAsync();
+```
+
+An entity that declares a CLR property with the same name and type (for example a domain `CreatedAt` a business rule depends on) is stamped through that property instead. See [Persistence with EF Core](#persistence-with-ef-core).
 
 ### Results
 
@@ -304,9 +309,11 @@ var options = new ListQueryOptions(
     size: 20);
 ```
 
-`ListQueryParser` builds the same options from raw query-string values:
+`ListQueryParser` in `Athenex.Whimclean.Api.AspNetCore.Queries` builds the same options from raw query-string values; the syntax is a presentation concern, so the parser lives in the API package:
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore.Queries;
+
 var parsed = ListQueryParser.Parse(
     searchTerm: "pending",
     sort: "-createdAt",
@@ -320,7 +327,7 @@ var parsed = ListQueryParser.Parse(
 | `sort` | Comma-separated field names; `-` prefix for descending. |
 | `filters` | One `field:operator:value` per entry. Operators: `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew`, `in` (comma-separated values). |
 
-`EnumFilter`, in the same namespace, parses filter values into enum members for translation.
+`EnumFilter`, in `Athenex.Whimclean.Application.Queries`, parses filter values into enum members for translation.
 
 **In the API**, derive the request from `ListQueryRequest` and its validator from `ListQueryRequestValidator<TRequest>` (both in `Athenex.Whimclean.Api.AspNetCore.Queries`) to allow-list the sort and filter fields of each endpoint. `ToListQueryOptions()` parses the validated request:
 
@@ -429,7 +436,7 @@ builder.Services.AddSmtpEmailSender();
 
 ### The application context
 
-Derive a non-tenant application context from `AuditableDbContext<TUserId, TActor>`. `TUserId` is the authenticated user identifier; `TActor` is the representation stored in audit fields.
+Derive a non-tenant application context from `AuditableDbContext<TUserId, TActor>`. `TUserId` is the authenticated user identifier; `TActor` is the representation stored in the actor columns of the audit stamps.
 
 ```csharp
 public sealed class ApplicationDbContext(
@@ -449,15 +456,21 @@ public sealed class ApplicationDbContext(
     {
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(ApplicationDbContext).Assembly);
+
+        modelBuilder.Entity<Order>(builder =>
+        {
+            builder.HasAuditStamps();
+            builder.HasSoftDelete();
+        });
     }
 }
 ```
 
 The context behaves as follows:
 
-- **Every write needs a user.** Added, modified or deleted records require `ICurrentUser<TUserId>` to provide a user, including records without an audit interface. Background jobs register an explicit system user such as `StaticCurrentUser<TUserId>` rather than bypassing the boundary.
-- **Audit fields are stamped at save time**, through the `IAuditActorResolver<TUserId, TActor>`.
-- **Soft-deleted rows are hidden.** Application mappings in `ConfigureModel` run before the infrastructure filters, so the base context discovers every root entity implementing `ISoftDelete<TActor>` and applies the named `SoftDeleteFilter`. A physical `Remove` of such an entity is rejected with `InvalidOperationException`; use the entity's own soft-delete operation. `IncludeSoftDeleted()` disables the filter for one query.
+- **Every write needs a user.** Added, modified or deleted records require `ICurrentUser<TUserId>` to provide a user, including records of entity types without audit stamps. Background jobs register an explicit system user such as `StaticCurrentUser<TUserId>` rather than bypassing the boundary.
+- **Audit stamps are shadow properties.** Entity types configured with `HasAuditStamps()` get `CreatedAt`/`CreatedBy` on insert and `UpdatedAt`/`UpdatedBy` on update, typed with `TActor` and stamped through `IAuditActorResolver<TUserId, TActor>`. The names are the constants in `AuditStampNames`.
+- **`Remove` soft-deletes.** Entity types configured with `HasSoftDelete()` keep their row: the save sets the shadow `IsDeleted`, `DeletedAt` and `DeletedBy` (`SoftDeleteNames`) and the named `SoftDeleteFilter` hides the row. `HardDelete(entity)` deletes the row for real, `Restore(entity)` reverses a soft delete, `IsSoftDeleted(entity)` reads the flag, and `IncludeSoftDeleted()` disables the filter for one query.
 - **Domain events are dispatched after a successful save**, then cleared. Saves are asynchronous only, so events are never forced through sync-over-async execution.
 - **Concurrency failures are translated.** `DbUpdateConcurrencyException` surfaces as `PersistenceConcurrencyException`, which the API layer maps to HTTP 409.
 
@@ -473,7 +486,7 @@ services.AddScoped<IDomainEventDispatcher, MediatorDomainEventDispatcher>();
 services.AddPostgreSqlUnitOfWork<ApplicationDbContext>(connectionString);
 ```
 
-`NullableAuditActorResolver<TUserId>` converts a non-null value-type user id such as `Guid` into nullable audit fields such as `Guid?`; `IdentityAuditActorResolver<TActor>` applies when the user id and the stored actor share one non-null type. The shortcuts `AddNullableAuditActorResolver<Guid>()`, `AddIdentityAuditActorResolver<Guid>()`, `AddDomainEventDispatcher()` and `AddMediatorDomainEventDispatcher()` register the same services with `TryAdd` semantics.
+`NullableAuditActorResolver<TUserId>` converts a non-null value-type user id such as `Guid` into a nullable actor value such as `Guid?`; `IdentityAuditActorResolver<TActor>` applies when the user id and the stored actor share one non-null type. The shortcuts `AddNullableAuditActorResolver<Guid>()`, `AddIdentityAuditActorResolver<Guid>()`, `AddDomainEventDispatcher()` and `AddMediatorDomainEventDispatcher()` register the same services with `TryAdd` semantics.
 
 Npgsql options stay at the provider edge:
 
@@ -821,4 +834,5 @@ app.MapHealthEndpoints();
 
 - Package READMEs, linked in [Packages](#packages).
 - [Multitenancy setup guide](docs/multitenancy-setup.md): logical, schema-per-tenant and database-per-tenant isolation.
+- [Upgrading to 2.0.0](docs/upgrading-to-2.0.md): moving audit stamps and soft deletion out of the domain model, and the `ListQueryParser` move.
 - [Upgrading to 1.3.0](docs/upgrading-to-1.3.md): replacing application-written helpers with the packages.

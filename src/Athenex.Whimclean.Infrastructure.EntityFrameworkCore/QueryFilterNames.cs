@@ -8,7 +8,7 @@ namespace Athenex.Whimclean.Infrastructure.EntityFrameworkCore;
 /// </summary>
 public static class QueryFilterNames
 {
-    /// <summary>Hides records flagged by ISoftDelete from default queries.</summary>
+    /// <summary>Hides rows whose soft-delete flag is set on entity types configured with <c>HasSoftDelete()</c>.</summary>
     public const string SoftDelete = "SoftDeleteFilter";
 
     /// <summary>

@@ -97,9 +97,9 @@ var invoice = new EmailMessage(
 
 แพ็กเกจนี้ไม่ขึ้นกับ EF Core, ASP.NET Core Identity, ผู้ให้บริการฐานข้อมูล หรือ multitenancy
 
-## แปลง list query จาก query string
+## ไวยากรณ์ของ list query
 
-`ListQueryParser` แปลงค่าดิบจาก query string ของ list endpoint ให้เป็น `ListQueryOptions` ทุก API จึงใช้ syntax เดียวกัน:
+`ListQueryParser` ซึ่งแปลงค่าดิบจาก query string ให้เป็น `ListQueryOptions` อยู่ในแพ็กเกจ [`Athenex.Whimclean.Api.AspNetCore`](../Athenex.Whimclean.Api.AspNetCore/README-TH.md) (namespace `Athenex.Whimclean.Api.AspNetCore.Queries`) ตั้งแต่ 2.0 เพราะไวยากรณ์ของ query string เป็นเรื่องของชั้น presentation แพ็กเกจนี้ยังคงเป็นเจ้าของ `ListQueryOptions`, `SortTerm`, `FilterTerm`, `FilterOperator`, `SortDirection`, `EnumFilter` และ `FacetQueryOptions` ที่ parser สร้างขึ้น ไวยากรณ์ที่ทุก API ใช้ร่วมกัน:
 
 | พารามิเตอร์ | รูปแบบ | ตัวอย่าง |
 | --- | --- | --- |
@@ -108,9 +108,11 @@ var invoice = new EmailMessage(
 | `filters` | `field:operator:value` หนึ่งรายการต่อพารามิเตอร์ที่ส่งซ้ำ | `filters=status:in:Active,Suspended` |
 | `page`, `size` | หมายเลขหน้าเริ่มที่หนึ่งและขนาดหน้า | `page=2&size=20` |
 
-operator ได้แก่ `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` และ `in` (ค่าคั่นด้วยจุลภาค); รหัส operator ไม่สนใจตัวพิมพ์เล็กใหญ่ `Parse`, `ParseSort` และ `ParseFilters` จะ throw `FormatException` เมื่อ input ไม่ถูกต้อง ส่วน `TryParseFilter` และ `TryParseSort` รายงานข้อผิดพลาดที่อ่านเข้าใจได้โดยไม่ throw ซึ่งแพ็กเกจ API ใช้สำหรับการตรวจสอบ
+operator ได้แก่ `eq`, `ne`, `gt`, `ge`, `lt`, `le`, `cn` (contains), `sw`, `ew` และ `in` (ค่าคั่นด้วยจุลภาค); รหัส operator ไม่สนใจตัวพิมพ์เล็กใหญ่ `Parse`, `ParseSort` และ `ParseFilters` ของ parser จะ throw `FormatException` เมื่อ input ไม่ถูกต้อง ส่วน `TryParseFilter` และ `TryParseSort` รายงานข้อผิดพลาดที่อ่านเข้าใจได้โดยไม่ throw ซึ่งแพ็กเกจ API ใช้สำหรับการตรวจสอบ
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore.Queries;
+
 var options = ListQueryParser.Parse(searchTerm, sort, filters, page, size);
 ```
 

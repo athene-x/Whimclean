@@ -1,34 +1,41 @@
 using System.Linq.Expressions;
 using Athenex.Whimclean.Application.Context;
 using Athenex.Whimclean.Application.Persistence;
-using Athenex.Whimclean.Domain.Auditables;
-using Athenex.Whimclean.Domain.Behaviors;
 using Athenex.Whimclean.Domain.Events;
 using Athenex.Whimclean.Infrastructure.Auditing;
 using Athenex.Whimclean.Infrastructure.DomainEvents;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence;
 
 /// <summary>
 /// DbContext base that turns every save into an audited unit of work: it
-/// requires an authenticated current user for any change, stamps
-/// Created/Updated/Deleted audit fields from <see cref="TimeProvider" />
-/// and <see cref="IAuditActorResolver{TUserId, TActor}" />, rejects hard
-/// deletes of soft-deletable entities, wraps concurrency failures in
-/// <see cref="PersistenceConcurrencyException" />, and dispatches queued
-/// domain events once the commit has succeeded. It also applies the named
-/// soft-delete query filter
-/// (<see cref="QueryFilterNames.SoftDelete" />) to root
-/// <see cref="ISoftDelete{TActor}" /> entity types, so deleted rows are
-/// hidden from queries by default.
+/// requires an authenticated current user for any change, stamps the
+/// audit properties of entity types configured with
+/// <see cref="EntityTypeBuilderExtensions.HasAuditStamps(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder)" />
+/// from <see cref="TimeProvider" /> and
+/// <see cref="IAuditActorResolver{TUserId, TActor}" />, turns
+/// <c>Remove</c> of entity types configured with
+/// <see cref="EntityTypeBuilderExtensions.HasSoftDelete(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder)" />
+/// into a soft delete hidden by the named query filter
+/// <see cref="QueryFilterNames.SoftDelete" />, wraps concurrency failures
+/// in <see cref="PersistenceConcurrencyException" />, and dispatches
+/// queued domain events once the commit has succeeded. The audit and
+/// soft-delete properties are shadow properties (see
+/// <see cref="AuditStampNames" /> and <see cref="SoftDeleteNames" />), so
+/// the domain model carries no persistence concerns.
 /// </summary>
 /// <typeparam name="TUserId">
 /// Identifier type reported by <see cref="ICurrentUser{TUserId}" />.
 /// </typeparam>
 /// <typeparam name="TActor">
-/// Value stored in the audit actor columns, produced by the resolver.
+/// Value stored in the actor columns, produced by the resolver.
+/// <c>CreatedBy</c> is required when this is a non-nullable value type
+/// and nullable otherwise (including every reference type, whose nullable
+/// annotation is not visible at runtime); the update and delete actors
+/// are always nullable.
 /// </typeparam>
 /// <param name="options">EF Core options for the concrete context.</param>
 /// <param name="timeProvider">
@@ -52,6 +59,9 @@ public abstract class AuditableDbContext<TUserId, TActor>(
     : DbContext(options), IUnitOfWork
     where TUserId : notnull
 {
+    private readonly HashSet<object> _hardDeletes =
+        new(ReferenceEqualityComparer.Instance);
+
     /// <summary>
     /// Persists all pending changes and then dispatches the queued domain
     /// events; equivalent to
@@ -60,6 +70,62 @@ public abstract class AuditableDbContext<TUserId, TActor>(
     public Task CommitAsync(
         CancellationToken cancellationToken = default) =>
         SaveChangesAsync(acceptAllChangesOnSuccess: true, cancellationToken);
+
+    /// <summary>
+    /// Deletes the row of a soft-deletable entity for real instead of
+    /// soft-deleting it. For entity types without soft deletion this is
+    /// the same as <see cref="DbContext.Remove(object)" />. Reserve it for
+    /// explicitly authorized operations such as data purges.
+    /// </summary>
+    /// <param name="entity">The tracked or detached entity to delete.</param>
+    public void HardDelete(object entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        _hardDeletes.Add(entity);
+        Remove(entity);
+    }
+
+    /// <summary>
+    /// Reverses a soft delete: clears <c>IsDeleted</c> so the next save
+    /// also clears <c>DeletedAt</c> and <c>DeletedBy</c>. Load the entity
+    /// with <see cref="SoftDeleteQueryableExtensions.IncludeSoftDeleted{T}" />
+    /// first, because the query filter hides deleted rows.
+    /// </summary>
+    /// <param name="entity">A tracked soft-deletable entity.</param>
+    /// <exception cref="InvalidOperationException">
+    /// The entity type is not configured with <c>HasSoftDelete</c>.
+    /// </exception>
+    public void Restore(object entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        var entry = Entry(entity);
+
+        if (!HasAnnotation(entry.Metadata, PersistenceAnnotations.SoftDelete))
+        {
+            throw new InvalidOperationException(
+                $"'{entry.Metadata.ClrType.Name}' is not configured for soft " +
+                "deletion; call HasSoftDelete() on its entity type to restore it.");
+        }
+
+        entry.Property(SoftDeleteNames.IsDeleted).CurrentValue = false;
+    }
+
+    /// <summary>
+    /// Whether a tracked soft-deletable entity is currently marked as
+    /// deleted. Returns <see langword="false" /> for entity types without
+    /// soft deletion.
+    /// </summary>
+    public bool IsSoftDeleted(object entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        var entry = Entry(entity);
+
+        return HasAnnotation(entry.Metadata, PersistenceAnnotations.SoftDelete) &&
+               entry.Property(SoftDeleteNames.IsDeleted).CurrentValue is true;
+    }
 
     /// <summary>
     /// Not supported: domain event dispatch is asynchronous, so
@@ -89,20 +155,16 @@ public abstract class AuditableDbContext<TUserId, TActor>(
 
     /// <summary>
     /// Runs the audited save pipeline: snapshots the queued domain events,
-    /// requires a current user when anything changed, rejects hard deletes
-    /// of soft-deletable entities, runs the infrastructure and application
-    /// write-validation hooks, stamps the audit fields, saves, clears the
-    /// events, then dispatches them with
-    /// <see cref="CancellationToken.None" /> — post-commit work must not
-    /// be cancelled.
+    /// requires a current user when anything changed, converts removals
+    /// of soft-deletable entities into soft deletes, runs the
+    /// infrastructure and application write-validation hooks, stamps the
+    /// audit and soft-delete properties, saves, clears the events, then
+    /// dispatches them with <see cref="CancellationToken.None" /> —
+    /// post-commit work must not be cancelled.
     /// </summary>
     /// <returns>The number of state entries written to the store.</returns>
     /// <exception cref="CurrentUserRequiredException">
     /// Changes are pending but no current user is available.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// A soft-deletable entity was hard-removed, which would bypass the
-    /// audit trail.
     /// </exception>
     /// <exception cref="PersistenceConcurrencyException">
     /// A record changed after it was loaded; reload it and retry.
@@ -134,10 +196,10 @@ public abstract class AuditableDbContext<TUserId, TActor>(
 
         var userId = RequireCurrentUserForWrites(changedEntries.Length > 0);
 
-        RejectHardDeletesOfSoftDeletableEntities(changedEntries);
+        ConvertRemovalsToSoftDeletes(changedEntries);
         ValidateInfrastructureWrites();
         ValidateApplicationWrites();
-        ApplyAuditFields(changedEntries, userId);
+        ApplyStamps(changedEntries, userId);
 
         int savedCount;
 
@@ -153,6 +215,8 @@ public abstract class AuditableDbContext<TUserId, TActor>(
                 "The record changed after it was loaded. Reload it and try again.",
                 exception);
         }
+
+        _hardDeletes.Clear();
 
         // Clear before dispatching so events raised by handlers during
         // dispatch survive on the aggregate for the next commit.
@@ -185,15 +249,16 @@ public abstract class AuditableDbContext<TUserId, TActor>(
 
     /// <summary>
     /// Sealed to fix the composition order: consumer configuration via
-    /// <see cref="ConfigureModel" /> first, then the soft-delete query
-    /// filters, then
+    /// <see cref="ConfigureModel" /> first, then the audit-stamp and
+    /// soft-delete properties with the soft-delete query filters, then
     /// <see cref="ConfigureAdditionalInfrastructureModel" />.
     /// </summary>
     protected sealed override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         ConfigureModel(modelBuilder);
-        ApplySoftDeleteQueryFilters(modelBuilder);
+        ApplyAuditStampProperties(modelBuilder);
+        ApplySoftDeleteProperties(modelBuilder);
         ConfigureAdditionalInfrastructureModel(modelBuilder);
     }
 
@@ -211,7 +276,10 @@ public abstract class AuditableDbContext<TUserId, TActor>(
 
     /// <summary>
     /// Consumer hook for entity model configuration, invoked before the
-    /// infrastructure query filters are applied. A no-op by default.
+    /// infrastructure properties and query filters are applied. Opt entity
+    /// types into stamping and soft deletion here with
+    /// <c>HasAuditStamps()</c> and <c>HasSoftDelete()</c>. A no-op by
+    /// default.
     /// </summary>
     protected virtual void ConfigureModel(ModelBuilder modelBuilder)
     {
@@ -241,20 +309,98 @@ public abstract class AuditableDbContext<TUserId, TActor>(
             "Use SaveChangesAsync or IUnitOfWork.CommitAsync so domain events " +
             "can be dispatched asynchronously.");
 
-    private static void RejectHardDeletesOfSoftDeletableEntities(
-        IReadOnlyCollection<EntityEntry> entries)
+    private static bool HasAnnotation(IReadOnlyEntityType entityType, string name)
     {
-        var hardDeletedEntry = entries.FirstOrDefault(entry =>
-            entry.State == EntityState.Deleted &&
-            entry.Entity is ISoftDelete<TActor>);
-
-        if (hardDeletedEntry is not null)
+        for (var type = entityType; type is not null; type = type.BaseType)
         {
-            throw new InvalidOperationException(
-                $"'{hardDeletedEntry.Entity.GetType().Name}' supports soft " +
-                "deletion. Removing it would bypass the soft-delete audit " +
-                "trail; use the entity's soft-delete operation instead of " +
-                "Remove.");
+            if (type.FindAnnotation(name) is not null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool DeclaresAnnotation(IReadOnlyEntityType entityType, string name) =>
+        entityType.FindAnnotation(name) is not null &&
+        (entityType.BaseType is null ||
+         !HasAnnotation(entityType.BaseType, name));
+
+    private static Type MakeNullable(Type type) =>
+        type.IsValueType && Nullable.GetUnderlyingType(type) is null
+            ? typeof(Nullable<>).MakeGenericType(type)
+            : type;
+
+    private static void AddProperty(
+        ModelBuilder modelBuilder,
+        Type entityClrType,
+        string name,
+        Type propertyType,
+        bool required)
+    {
+        var builder = modelBuilder.Entity(entityClrType).Property(propertyType, name);
+
+        if (!required)
+        {
+            builder.IsRequired(false);
+        }
+    }
+
+    private static void ApplyAuditStampProperties(ModelBuilder modelBuilder)
+    {
+        var actorType = typeof(TActor);
+        var nullableActorType = MakeNullable(actorType);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (entityType.IsOwned() ||
+                !DeclaresAnnotation(entityType, PersistenceAnnotations.AuditStamps))
+            {
+                continue;
+            }
+
+            var clrType = entityType.ClrType;
+
+            AddProperty(modelBuilder, clrType, AuditStampNames.CreatedAt, typeof(DateTimeOffset), required: true);
+            AddProperty(modelBuilder, clrType, AuditStampNames.CreatedBy, actorType, required: actorType.IsValueType && nullableActorType != actorType);
+            AddProperty(modelBuilder, clrType, AuditStampNames.UpdatedAt, typeof(DateTimeOffset?), required: false);
+            AddProperty(modelBuilder, clrType, AuditStampNames.UpdatedBy, nullableActorType, required: false);
+        }
+    }
+
+    private static void ApplySoftDeleteProperties(ModelBuilder modelBuilder)
+    {
+        var nullableActorType = MakeNullable(typeof(TActor));
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            // Owned types cannot carry query filters; configuring one via
+            // modelBuilder.Entity would also detach it from its owner.
+            if (entityType.IsOwned() ||
+                !DeclaresAnnotation(entityType, PersistenceAnnotations.SoftDelete))
+            {
+                continue;
+            }
+
+            var clrType = entityType.ClrType;
+
+            AddProperty(modelBuilder, clrType, SoftDeleteNames.IsDeleted, typeof(bool), required: true);
+            AddProperty(modelBuilder, clrType, SoftDeleteNames.DeletedAt, typeof(DateTimeOffset?), required: false);
+            AddProperty(modelBuilder, clrType, SoftDeleteNames.DeletedBy, nullableActorType, required: false);
+
+            var parameter = Expression.Parameter(clrType, "entity");
+            var isDeleted = Expression.Call(
+                typeof(EF),
+                nameof(EF.Property),
+                [typeof(bool)],
+                parameter,
+                Expression.Constant(SoftDeleteNames.IsDeleted));
+            var filterBody = Expression.Not(isDeleted);
+
+            modelBuilder.Entity(clrType).HasQueryFilter(
+                QueryFilterNames.SoftDelete,
+                Expression.Lambda(filterBody, parameter));
         }
     }
 
@@ -268,20 +414,37 @@ public abstract class AuditableDbContext<TUserId, TActor>(
         return currentUser.GetRequiredUserId();
     }
 
-    private void ApplyAuditFields(
-        IReadOnlyCollection<EntityEntry> entries,
-        TUserId userId)
+    private void ConvertRemovalsToSoftDeletes(IReadOnlyCollection<EntityEntry> entries)
     {
-        var requiresActor = entries.Any(entry =>
-            (entry.State == EntityState.Added &&
-             entry.Entity is ICreateAuditable<TActor>) ||
-            (entry.State == EntityState.Modified &&
-             entry.Entity is IUpdateAuditable<TActor>) ||
-            (entry.State == EntityState.Modified &&
-             entry.Entity is ISoftDelete<TActor> &&
-             entry.Property(nameof(ISoftDelete<TActor>.IsDeleted)).IsModified));
+        foreach (var entry in entries)
+        {
+            if (entry.State != EntityState.Deleted ||
+                _hardDeletes.Contains(entry.Entity) ||
+                !HasAnnotation(entry.Metadata, PersistenceAnnotations.SoftDelete))
+            {
+                continue;
+            }
 
-        if (!requiresActor)
+            // Go through Unchanged rather than Modified so that only the
+            // soft-delete flag (and the stamps written below) count as
+            // modified; marking every property would, for example, trip
+            // the multitenancy check on an unchanged TenantId.
+            entry.State = EntityState.Unchanged;
+            entry.Property(SoftDeleteNames.IsDeleted).CurrentValue = true;
+        }
+    }
+
+    private void ApplyStamps(IReadOnlyCollection<EntityEntry> entries, TUserId userId)
+    {
+        var stampedEntries = entries
+            .Where(entry =>
+                (entry.State is EntityState.Added or EntityState.Modified &&
+                 HasAnnotation(entry.Metadata, PersistenceAnnotations.AuditStamps)) ||
+                (HasAnnotation(entry.Metadata, PersistenceAnnotations.SoftDelete) &&
+                 NeedsSoftDeleteStamp(entry)))
+            .ToArray();
+
+        if (stampedEntries.Length == 0)
         {
             return;
         }
@@ -289,68 +452,45 @@ public abstract class AuditableDbContext<TUserId, TActor>(
         var now = timeProvider.GetUtcNow();
         var actor = auditActorResolver.Resolve(userId);
 
-        foreach (var entry in entries)
+        foreach (var entry in stampedEntries)
         {
-            if (entry.State == EntityState.Added &&
-                entry.Entity is ICreateAuditable<TActor>)
+            var hasAuditStamps = HasAnnotation(entry.Metadata, PersistenceAnnotations.AuditStamps);
+
+            if (entry.State == EntityState.Added && hasAuditStamps)
             {
-                entry.Property(nameof(ICreateAuditable<>.CreatedAt))
-                    .CurrentValue = now;
-                entry.Property(nameof(ICreateAuditable<TActor>.CreatedBy))
-                    .CurrentValue = actor;
+                entry.Property(AuditStampNames.CreatedAt).CurrentValue = now;
+                entry.Property(AuditStampNames.CreatedBy).CurrentValue = actor;
             }
 
-            if (entry.State == EntityState.Modified &&
-                entry.Entity is IUpdateAuditable<TActor>)
+            if (entry.State == EntityState.Modified && hasAuditStamps)
             {
-                entry.Property(nameof(IUpdateAuditable<>.UpdatedAt))
-                    .CurrentValue = now;
-                entry.Property(nameof(IUpdateAuditable<TActor>.UpdatedBy))
-                    .CurrentValue = actor;
+                entry.Property(AuditStampNames.UpdatedAt).CurrentValue = now;
+                entry.Property(AuditStampNames.UpdatedBy).CurrentValue = actor;
             }
 
-            if (entry.State == EntityState.Modified &&
-                entry.Entity is ISoftDelete<TActor> &&
-                entry.Property(nameof(ISoftDelete<TActor>.IsDeleted))
-                    .IsModified)
+            if (HasAnnotation(entry.Metadata, PersistenceAnnotations.SoftDelete) &&
+                NeedsSoftDeleteStamp(entry))
             {
-                var isDeleted = (bool)entry
-                    .Property(nameof(ISoftDelete<TActor>.IsDeleted))
-                    .CurrentValue!;
+                var isDeleted = entry.Property(SoftDeleteNames.IsDeleted).CurrentValue is true;
 
-                entry.Property(nameof(ISoftDelete<>.DeletedAt))
-                    .CurrentValue = isDeleted ? now : null;
-                entry.Property(nameof(ISoftDelete<TActor>.DeletedBy))
-                    .CurrentValue = isDeleted ? actor : default;
+                entry.Property(SoftDeleteNames.DeletedAt).CurrentValue = isDeleted ? now : null;
+                entry.Property(SoftDeleteNames.DeletedBy).CurrentValue = isDeleted ? actor : null;
             }
         }
     }
 
-    private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
+    // A modified row is stamped when its flag changed; a row added already
+    // deleted (an import) is stamped when the import left the stamp empty.
+    private static bool NeedsSoftDeleteStamp(EntityEntry entry)
     {
-        var softDeleteType = typeof(ISoftDelete<TActor>);
+        var flag = entry.Property(SoftDeleteNames.IsDeleted);
 
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        return entry.State switch
         {
-            // Owned types cannot carry query filters; configuring one via
-            // modelBuilder.Entity would also detach it from its owner.
-            if (entityType.IsOwned() ||
-                !softDeleteType.IsAssignableFrom(entityType.ClrType) ||
-                (entityType.BaseType is not null &&
-                 softDeleteType.IsAssignableFrom(entityType.BaseType.ClrType)))
-            {
-                continue;
-            }
-
-            var parameter = Expression.Parameter(entityType.ClrType, "entity");
-            var isDeleted = Expression.Property(
-                parameter,
-                nameof(ISoftDelete<TActor>.IsDeleted));
-            var filterBody = Expression.Not(isDeleted);
-
-            modelBuilder.Entity(entityType.ClrType).HasQueryFilter(
-                QueryFilterNames.SoftDelete,
-                Expression.Lambda(filterBody, parameter));
-        }
+            EntityState.Modified => !Equals(flag.OriginalValue, flag.CurrentValue),
+            EntityState.Added => flag.CurrentValue is true &&
+                                 entry.Property(SoftDeleteNames.DeletedAt).CurrentValue is null,
+            _ => false
+        };
     }
 }

@@ -1,11 +1,10 @@
 using Athenex.Whimclean.Application.Context;
-using Athenex.Whimclean.Domain.Auditables;
-using Athenex.Whimclean.Domain.Behaviors;
 using Athenex.Whimclean.Domain.Entities;
 using Athenex.Whimclean.Domain.Events;
 using Athenex.Whimclean.Infrastructure.Auditing;
 using Athenex.Whimclean.Infrastructure.DomainEvents;
 using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy.Persistence;
+using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence;
 using Athenex.Whimclean.Multitenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -82,12 +81,12 @@ public sealed class MultiTenantDbContextTests
                          databaseRoot,
                          tenantOneId))
         {
+            var deleted = new TenantAggregate(Guid.NewGuid(), tenantOneId);
             tenantOneContext.Aggregates.AddRange(
                 new TenantAggregate(Guid.NewGuid(), tenantOneId),
-                new TenantAggregate(
-                    Guid.NewGuid(),
-                    tenantOneId,
-                    isDeleted: true));
+                deleted);
+            await tenantOneContext.SaveChangesAsync();
+            tenantOneContext.Aggregates.Remove(deleted);
             await tenantOneContext.SaveChangesAsync();
         }
 
@@ -116,7 +115,7 @@ public sealed class MultiTenantDbContextTests
             includingDeleted,
             aggregate => Assert.Equal(tenantOneId, aggregate.TenantId));
         Assert.Equal(2, acrossTenants.Length);
-        Assert.All(acrossTenants, aggregate => Assert.False(aggregate.IsDeleted));
+        Assert.All(acrossTenants, aggregate => Assert.False(queryContext.IsSoftDeleted(aggregate)));
     }
 
     [Fact]
@@ -130,12 +129,12 @@ public sealed class MultiTenantDbContextTests
                          databaseRoot,
                          tenantOneId))
         {
+            var deleted = new TenantAggregate(Guid.NewGuid(), tenantOneId);
             tenantOneContext.Aggregates.AddRange(
                 new TenantAggregate(Guid.NewGuid(), tenantOneId),
-                new TenantAggregate(
-                    Guid.NewGuid(),
-                    tenantOneId,
-                    isDeleted: true));
+                deleted);
+            await tenantOneContext.SaveChangesAsync();
+            tenantOneContext.Aggregates.Remove(deleted);
             await tenantOneContext.SaveChangesAsync();
         }
 
@@ -160,7 +159,7 @@ public sealed class MultiTenantDbContextTests
         Assert.All(
             records,
             aggregate => Assert.Equal(tenantOneId, aggregate.TenantId));
-        Assert.Contains(records, aggregate => aggregate.IsDeleted);
+        Assert.Contains(records, aggregate => queryContext.IsSoftDeleted(aggregate));
     }
 
     [Fact]
@@ -265,38 +264,27 @@ public sealed class MultiTenantDbContextTests
             {
                 builder.HasKey(aggregate => aggregate.Id);
                 builder.Ignore(aggregate => aggregate.DomainEvents);
+                builder.HasAuditStamps();
+                builder.HasSoftDelete();
             });
         }
     }
 
     private sealed class TenantAggregate : AggregateRoot<Guid>,
-        IAuditable<Guid?>,
-        IMultiTenant<Guid>,
-        ISoftDelete<Guid?>
+        IMultiTenant<Guid>
     {
         private TenantAggregate()
         {
         }
 
-        public TenantAggregate(
-            Guid id,
-            Guid tenantId,
-            bool isDeleted = false) : base(id)
+        public TenantAggregate(Guid id, Guid tenantId) : base(id)
         {
             TenantId = tenantId;
-            IsDeleted = isDeleted;
         }
 
         public Guid TenantId { get; private set; }
 
         public void MoveToTenant(Guid tenantId) => TenantId = tenantId;
-        public DateTimeOffset CreatedAt { get; private set; }
-        public Guid? CreatedBy { get; private set; }
-        public DateTimeOffset? UpdatedAt { get; private set; }
-        public Guid? UpdatedBy { get; private set; }
-        public bool IsDeleted { get; private set; }
-        public DateTimeOffset? DeletedAt { get; private set; }
-        public Guid? DeletedBy { get; private set; }
     }
 
     private sealed class FixedCurrentUser(Guid userId) : ICurrentUser<Guid>

@@ -85,7 +85,7 @@ Register an `ICurrentTenant<Guid>` implementation. The ASP.NET Core multitenancy
 - Added, modified, and deleted tenant-owned records require a current tenant; otherwise the save throws `CurrentTenantRequiredException`. Saves that touch no tenant-owned entity are not checked.
 - A record whose `TenantId` differs from the current tenant — or whose `TenantId` was modified, in either direction — causes `TenantAccessViolationException`. Tenant reassignment is never a valid write.
 - The context validates but never assigns or rewrites `TenantId`.
-- Auditing, current-user enforcement, soft deletion, concurrency translation, and domain-event behavior remain inherited from `AuditableDbContext`.
+- Audit stamps, current-user enforcement, soft deletion (`HasAuditStamps()` and `HasSoftDelete()` in `ConfigureModel`), concurrency translation, and domain-event behavior remain inherited from `AuditableDbContext`.
 
 An explicitly authorized administrative query can disable only the tenant filter:
 

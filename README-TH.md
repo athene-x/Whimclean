@@ -2,13 +2,21 @@
 
 [English](README.md)
 
-Whimclean คือชุด building block สำหรับ .NET 10 สำหรับแอปพลิเคชันธุรกิจ: โมเดล domain ที่มี aggregate, domain event และฟิลด์ audit; สัญญาในชั้น application สำหรับ query, pagination และอีเมล; persistence ด้วย EF Core แบบไม่ผูกกับ provider พร้อม adapter สำหรับ PostgreSQL; multitenancy แบบเลือกใช้ได้; และ host แบบ ASP.NET Core Minimal API พร้อม adapter สำหรับ FastEndpoints
+Whimclean คือชุด building block สำหรับ .NET 10 สำหรับแอปพลิเคชันธุรกิจ: โมเดล domain ที่มี aggregate และ domain event; สัญญาในชั้น application สำหรับ query, pagination และอีเมล; persistence ด้วย EF Core แบบไม่ผูกกับ provider ที่ประทับ audit stamp และทำ soft delete ให้ พร้อม adapter สำหรับ PostgreSQL; multitenancy แบบเลือกใช้ได้; และ host แบบ ASP.NET Core Minimal API พร้อม adapter สำหรับ FastEndpoints
 
 การตัดสินใจสามข้อที่กำหนดรูปร่างของ library:
 
 - **การยืนยันตัวตนเป็นแบบนำมาเอง** แอปพลิเคชันยืนยันตัวตนกับ identity provider ภายนอก (Keycloak, Microsoft Entra ID, Auth0) หรือกับ ASP.NET Core Identity และ Whimclean รับเฉพาะ principal ที่ได้ผ่าน `ICurrentUser<TUserId>` ไม่เก็บผู้ใช้ credential หรือ token
 - **dependency ชี้ทางเดียว** แพ็กเกจของ provider, API และ tenant ขึ้นกับแพ็กเกจกลาง ไม่มีทางกลับกัน จึงเปลี่ยน provider หรือรูปแบบ endpoint ได้โดยไม่แตะชั้น domain และ application
 - **สัญญา API เดียว** `Athenex.Whimclean.Api.AspNetCore` เป็นแพ็กเกจ API หลัก สร้างบน Minimal APIs ส่วน `Athenex.Whimclean.Api.FastEndpoints` นำ error body, response ของ validation และสัญญา list query ชุดเดียวกันไปใช้กับ FastEndpoints
+
+### การตัดสินใจเชิงออกแบบและข้อแลกเปลี่ยน
+
+สามข้อที่ library เลือกโดยตั้งใจ และผลที่ผู้ใช้ควรทราบ:
+
+- **command handler ผูกกับ `Mediator.Abstractions`** แพ็กเกจ `Mediator` ให้ command implement `ICommand<T>` ของ [Mediator](https://github.com/martinothamar/Mediator) โดยตรง เพราะเป็น source-generated ไม่มี reflection ตอนรัน และถือเป็นส่วนหนึ่งของ stack เช่นเดียวกับ runtime แอปพลิเคชันที่ไม่ต้องการ dependency นี้ใช้ dispatcher ของ `Athenex.Whimclean.Infrastructure` และเรียก `IUnitOfWork.CommitAsync` ใน handler เอง
+- **audit stamp และ soft delete อยู่ใน shadow property ของ EF** (ใหม่ใน 2.0) แพ็กเกจ Domain จึงไม่มีความกังวลด้าน persistence เลย entity type เลือกเข้าร่วมใน `ConfigureModel` ด้วย `HasAuditStamps()` และ `HasSoftDelete()` และ query อ่านค่าผ่าน `EF.Property`
+- **domain event ถูก dispatch ใน process หลัง commit** ไม่มี outbox การส่งจึงเป็น at-most-once เมื่อ process ล้มเหลวระหว่าง dispatch แอปพลิเคชันที่ต้องการการรับประกันมากกว่านี้ implement outbox ของตัวเองใน context ฝั่งผู้ใช้
 
 ## สารบัญ
 
@@ -32,8 +40,8 @@ Whimclean คือชุด building block สำหรับ .NET 10 สำห
 
 | แพ็กเกจ | ให้อะไร | ขึ้นกับ |
 | --- | --- | --- |
-| [`Domain`](src/Athenex.Whimclean.Domain/README-TH.md) | entity, aggregate root, domain event, ฟิลด์ audit, soft delete, `Result` และ `Error`, การ normalize ข้อความ | ไม่มี |
-| [`Application`](src/Athenex.Whimclean.Application/README-TH.md) | สัญญาของผู้ใช้ปัจจุบันและ context ปัจจุบัน, abstraction สำหรับอีเมล, โมเดล pagination, สัญญาด้าน persistence, list query options ที่ผ่านการตรวจสอบ และไวยากรณ์ของ `ListQueryParser` | `Domain` |
+| [`Domain`](src/Athenex.Whimclean.Domain/README-TH.md) | entity, aggregate root, domain event, `IActivatable`, `Result` และ `Error`, การ normalize ข้อความ | ไม่มี |
+| [`Application`](src/Athenex.Whimclean.Application/README-TH.md) | สัญญาของผู้ใช้ปัจจุบันและ context ปัจจุบัน, abstraction สำหรับอีเมล, โมเดล pagination, สัญญาด้าน persistence และ list query options ที่ผ่านการตรวจสอบ | `Domain` |
 | [`Infrastructure`](src/Athenex.Whimclean.Infrastructure/README-TH.md) | การ resolve audit actor แบบไม่ผูกกับ provider, pipeline ของ domain event ภายในโปรเซส, ตัวระบุสำหรับ seed แบบกำหนดผลได้ | `Domain` |
 | [`Multitenancy.Abstractions`](src/Athenex.Whimclean.Multitenancy.Abstractions/README-TH.md) | สัญญาของ tenant marker และ current tenant, การตรวจสอบสิทธิ์เข้าถึง, current tenant แบบ ambient สำหรับ host ที่ไม่ใช่ HTTP, exception ของขอบเขต tenant | ไม่มี |
 
@@ -41,7 +49,7 @@ Whimclean คือชุด building block สำหรับ .NET 10 สำห
 
 | แพ็กเกจ | ให้อะไร | ขึ้นกับ |
 | --- | --- | --- |
-| [`Infrastructure.EntityFrameworkCore`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore/README-TH.md) | `AuditableDbContext`, การเขียนที่บังคับต้องมีผู้ใช้ปัจจุบัน, การประทับค่า audit, query filter สำหรับ soft delete แบบมีชื่อ, การแปลง concurrency exception, การส่ง domain event แบบ asynchronous, ตัวช่วยสำหรับ list query, สวิตช์ `--migrate`, การลงทะเบียน `DbContext`/`IUnitOfWork` | `Application`, `Infrastructure`, EF Core (ไม่มี provider) |
+| [`Infrastructure.EntityFrameworkCore`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore/README-TH.md) | `AuditableDbContext`, การเขียนที่บังคับต้องมีผู้ใช้ปัจจุบัน, audit stamp และ soft delete แบบ shadow property ที่เลือกใช้ด้วย `HasAuditStamps()`/`HasSoftDelete()`, query filter สำหรับ soft delete แบบมีชื่อ, การแปลง concurrency exception, การส่ง domain event แบบ asynchronous, ตัวช่วยสำหรับ list query, สวิตช์ `--migrate`, การลงทะเบียน `DbContext`/`IUnitOfWork` | `Application`, `Infrastructure`, EF Core (ไม่มี provider) |
 | [`Infrastructure.EntityFrameworkCore.PostgreSQL`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.PostgreSQL/README-TH.md) | Npgsql, การลงทะเบียน PostgreSQL, ตัวช่วยค้นหาแบบไม่สนตัวพิมพ์ `SearchILike` | `Infrastructure.EntityFrameworkCore` |
 | [`Infrastructure.EntityFrameworkCore.Multitenancy`](src/Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Multitenancy/README-TH.md) | `MultiTenantDbContext`, query filter ของ tenant แบบ fail-closed และการตรวจสอบการเขียน | `Infrastructure.EntityFrameworkCore`, `Multitenancy.Abstractions` |
 
@@ -49,7 +57,7 @@ Whimclean คือชุด building block สำหรับ .NET 10 สำห
 
 | แพ็กเกจ | ให้อะไร | ขึ้นกับ |
 | --- | --- | --- |
-| [`Api.AspNetCore`](src/Athenex.Whimclean.Api.AspNetCore/README-TH.md) | แพ็กเกจ API หลัก: การลงทะเบียน Minimal API พร้อม OpenAPI, การตรวจสอบ request ด้วย FluentValidation บน group `api/v1`, สัญญา `ListQueryRequest`, สัญญา error พร้อมการ map exception และ `Result`, การ resolve ผู้ใช้ปัจจุบัน, health endpoint, rate limit, options ที่ผ่านการตรวจสอบ | `Application` |
+| [`Api.AspNetCore`](src/Athenex.Whimclean.Api.AspNetCore/README-TH.md) | แพ็กเกจ API หลัก: การลงทะเบียน Minimal API พร้อม OpenAPI, การตรวจสอบ request ด้วย FluentValidation บน group `api/v1`, สัญญา `ListQueryRequest` และ `ListQueryParser`, สัญญา error พร้อมการ map exception และ `Result`, การ resolve ผู้ใช้ปัจจุบัน, health endpoint, rate limit, options ที่ผ่านการตรวจสอบ | `Application` |
 | [`Api.FastEndpoints`](src/Athenex.Whimclean.Api.FastEndpoints/README-TH.md) | adapter ของ FastEndpoints: การลงทะเบียน FastEndpoints และ OpenAPI ของมัน, response ของ validation บนสัญญา error ร่วม, การ bind filter ของ list query แบบทั้งค่า | `Api.AspNetCore` |
 | [`Api.AspNetCore.Multitenancy`](src/Athenex.Whimclean.Api.AspNetCore.Multitenancy/README-TH.md) | การ resolve tenant ที่ถูกร้องขอจาก header ของ id หรือ slug, การอนุญาตตาม membership, tenant context ที่ผ่านการอนุญาต, การ map error ของ tenant ใช้ได้ทั้งกับ Minimal APIs และ FastEndpoints | `Api.AspNetCore`, `Multitenancy.Abstractions` |
 
@@ -248,31 +256,33 @@ public sealed class Order : AggregateRoot<Guid>
 
 event ที่ raise แล้วเข้าถึงได้ผ่าน `DomainEvents` การล้าง event เป็นเรื่องของ infrastructure: `ClearDomainEvents()` เข้าถึงได้ผ่าน `IHasDomainEvents` เท่านั้น และ EF Core context เรียกมันหลังบันทึกสำเร็จ ก่อนส่ง event ออกไป
 
-### ฟิลด์ audit
+### audit stamp และ soft delete
 
-`IAuditable<TActor>` ประกาศฟิลด์ audit สี่ฟิลด์ ชนิดของ actor กำหนด nullability ของตัวเอง แอปพลิเคชันจึงเก็บเป็น identifier ชื่อ หรือชนิด actor ที่กำหนดเองก็ได้:
+โมเดล domain ไม่ประกาศฟิลด์ audit หรือ flag การลบ แพ็กเกจ EF Core เป็นเจ้าของทั้งสองอย่างในรูป shadow property และ entity type เลือกเข้าร่วมใน `ConfigureModel`:
 
 ```csharp
-using Athenex.Whimclean.Domain.Auditables;
+using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence;
 
-public sealed class OrderAudit : IAuditable<Guid?>
+protected override void ConfigureModel(ModelBuilder modelBuilder)
 {
-    public DateTimeOffset CreatedAt { get; init; }
-    public Guid? CreatedBy { get; init; }
-    public DateTimeOffset? UpdatedAt { get; init; }
-    public Guid? UpdatedBy { get; init; }
-}
-
-public sealed class ImportAudit : IAuditable<string?>
-{
-    public DateTimeOffset CreatedAt { get; init; }
-    public string? CreatedBy { get; init; }
-    public DateTimeOffset? UpdatedAt { get; init; }
-    public string? UpdatedBy { get; init; }
+    modelBuilder.Entity<Order>(builder =>
+    {
+        builder.HasKey(order => order.Id);
+        builder.HasAuditStamps();   // CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
+        builder.HasSoftDelete();    // IsDeleted, DeletedAt, DeletedBy + SoftDeleteFilter
+    });
 }
 ```
 
-`AuditableEntity<TId, TActor>` และ `AuditableAggregateRoot<TId, TActor>` ประกาศฟิลด์เหล่านี้ไว้ครั้งเดียว entity ที่สืบทอดจึงไม่ต้องประกาศซ้ำ EF Core context ประทับค่าตอนบันทึก
+context ใช้ `TActor` ของตัวเองเป็นชนิดของคอลัมน์ actor ชนิดนั้นกำหนด nullability ของ `CreatedBy` เอง ส่วน `UpdatedBy` และ `DeletedBy` เป็น nullable เสมอ อ่านค่าใน query ด้วย `EF.Property`:
+
+```csharp
+var recent = await dbContext.Orders
+    .OrderByDescending(order => EF.Property<DateTimeOffset>(order, AuditStampNames.CreatedAt))
+    .ToListAsync(cancellationToken);
+```
+
+หาก entity ประกาศ CLR property ชื่อและชนิดเดียวกัน (เช่น domain ต้องใช้ `CreatedAt` ในกฎของตัวเอง) context จะประทับค่าลง property นั้นแทนการเพิ่ม shadow property รายละเอียดอยู่ใน [persistence ด้วย EF Core](#persistence-ด้วย-ef-core)
 
 ### result
 
@@ -304,9 +314,11 @@ var options = new ListQueryOptions(
     size: 20);
 ```
 
-`ListQueryParser` สร้าง options ชุดเดียวกันจากค่าดิบของ query string:
+`ListQueryParser` (ใน `Athenex.Whimclean.Api.AspNetCore.Queries` เพราะไวยากรณ์ของ query string เป็นเรื่องของชั้น presentation) สร้าง options ชุดเดียวกันจากค่าดิบของ query string:
 
 ```csharp
+using Athenex.Whimclean.Api.AspNetCore.Queries;
+
 var parsed = ListQueryParser.Parse(
     searchTerm: "pending",
     sort: "-createdAt",
@@ -429,7 +441,7 @@ builder.Services.AddSmtpEmailSender();
 
 ### context ของแอปพลิเคชัน
 
-สืบทอด context ของแอปพลิเคชันที่ไม่ใช้ tenant จาก `AuditableDbContext<TUserId, TActor>` โดย `TUserId` คือตัวระบุผู้ใช้ที่ยืนยันตัวตนแล้ว ส่วน `TActor` คือรูปแบบที่เก็บลงในฟิลด์ audit
+สืบทอด context ของแอปพลิเคชันที่ไม่ใช้ tenant จาก `AuditableDbContext<TUserId, TActor>` โดย `TUserId` คือตัวระบุผู้ใช้ที่ยืนยันตัวตนแล้ว ส่วน `TActor` คือรูปแบบที่เก็บลงในคอลัมน์ actor ของ audit stamp
 
 ```csharp
 public sealed class ApplicationDbContext(
@@ -455,9 +467,9 @@ public sealed class ApplicationDbContext(
 
 context ทำงานดังนี้:
 
-- **การเขียนทุกครั้งต้องมีผู้ใช้** record ที่เพิ่ม แก้ไข หรือลบต้องมี `ICurrentUser<TUserId>` ที่ให้ผู้ใช้ได้ รวมถึง record ที่ไม่มี audit interface background job ลงทะเบียน system user อย่างชัดเจน เช่น `StaticCurrentUser<TUserId>` แทนการข้ามขอบเขตนี้
-- **ฟิลด์ audit ถูกประทับตอนบันทึก** ผ่าน `IAuditActorResolver<TUserId, TActor>`
-- **แถวที่ soft delete ถูกซ่อน** การ map ของแอปพลิเคชันใน `ConfigureModel` ทำงานก่อน filter ของ infrastructure context ฐานจึงค้นพบ entity ราก (root) ทุกตัวที่ implement `ISoftDelete<TActor>` และใส่ `SoftDeleteFilter` แบบมีชื่อให้ การ `Remove` จริงของ entity เช่นนี้ถูกปฏิเสธด้วย `InvalidOperationException` ให้ใช้การ soft delete ของ entity นั้นเอง `IncludeSoftDeleted()` ปิด filter นี้สำหรับ query เดียว
+- **การเขียนทุกครั้งต้องมีผู้ใช้** record ที่เพิ่ม แก้ไข หรือลบต้องมี `ICurrentUser<TUserId>` ที่ให้ผู้ใช้ได้ รวมถึง record ที่ไม่มี audit stamp background job ลงทะเบียน system user อย่างชัดเจน เช่น `StaticCurrentUser<TUserId>` แทนการข้ามขอบเขตนี้
+- **audit stamp ถูกประทับตอนบันทึก** entity type ที่ `HasAuditStamps()` ได้ shadow property `CreatedAt`/`CreatedBy` ตอนเพิ่ม และ `UpdatedAt`/`UpdatedBy` ตอนแก้ไข ค่า actor มาจาก `IAuditActorResolver<TUserId, TActor>` ชื่อ property อยู่ใน `AuditStampNames`
+- **`Remove` กลายเป็น soft delete** entity type ที่ `HasSoftDelete()` ได้ shadow property `IsDeleted`, `DeletedAt`, `DeletedBy` (ชื่อใน `SoftDeleteNames`) และ `SoftDeleteFilter` แบบมีชื่อ การ `Remove` ถูกแปลงตอนบันทึกเป็นการตั้ง `IsDeleted` พร้อมประทับค่า แถวยังอยู่แต่ถูกซ่อนจาก query `IncludeSoftDeleted()` เปิดดูสำหรับ query เดียว `Restore(entity)` กู้คืน `HardDelete(entity)` ลบแถวจริงสำหรับงานล้างข้อมูลที่ได้รับอนุญาต และ `IsSoftDeleted(entity)` อ่าน flag
 - **domain event ถูกส่งหลังบันทึกสำเร็จ** แล้วจึงล้าง การบันทึกรองรับเฉพาะแบบ asynchronous event จึงไม่ถูกบังคับผ่าน sync-over-async
 - **concurrency failure ถูกแปลง** `DbUpdateConcurrencyException` ปรากฏเป็น `PersistenceConcurrencyException` ซึ่งชั้น API map เป็น HTTP 409
 
@@ -821,4 +833,5 @@ app.MapHealthEndpoints();
 
 - README ของแต่ละแพ็กเกจ ลิงก์อยู่ใน [แพ็กเกจ](#แพ็กเกจ)
 - [คู่มือตั้งค่า multitenancy](docs/multitenancy-setup-TH.md): การแยกข้อมูลเชิงตรรกะ, schema ต่อ tenant และฐานข้อมูลต่อ tenant
+- [การอัปเกรดเป็น 2.0.0](docs/upgrading-to-2.0-TH.md): การย้าย audit stamp และ soft delete จาก Domain ไปเป็น shadow property ของ EF และที่อยู่ใหม่ของ `ListQueryParser`
 - [การอัปเกรดเป็น 1.3.0](docs/upgrading-to-1.3-TH.md): การแทนที่ helper ที่แอปพลิเคชันเขียนเองด้วยแพ็กเกจ

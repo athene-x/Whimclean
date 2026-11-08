@@ -124,7 +124,7 @@ using (AmbientCurrentTenant<Guid>.Begin(tenantId))
 รองรับเต็มรูปแบบโดยแพ็กเกจที่ส่งมอบแล้ว entity ที่ tenant เป็นเจ้าของ implement `IMultiTenant<Guid>` และ context สืบทอดจาก `MultiTenantDbContext`:
 
 ```csharp
-public sealed class Order : AggregateRoot<Guid>, IAuditable<Guid?>, IMultiTenant<Guid>
+public sealed class Order : AggregateRoot<Guid>, IMultiTenant<Guid>
 {
     public Guid TenantId { get; private set; }
     // ...
@@ -173,7 +173,7 @@ migration: รัน `dotnet ef database update` ครั้งเดียว 
 
 ยังไม่มีเป็นแพ็กเกจ รูปแบบที่ตกลงกันคือ **connection interceptor ที่ตั้งค่า `search_path`** ในทุก connection ที่เปิด **ห้าม** ใช้ `HasDefaultSchema` ต่อ tenant — นั่นจะสร้าง EF model cache หนึ่งรายการต่อ tenant
 
-เนื่องจาก schema เป็นตัวแยกข้อมูล entity จึงไม่ต้อง implement `IMultiTenant<Guid>` และ context สืบทอดจาก `AuditableDbContext<Guid, Guid?>` ธรรมดา (auditing, soft delete และการ dispatch domain event ยังคงทำงาน)
+เนื่องจาก schema เป็นตัวแยกข้อมูล entity จึงไม่ต้อง implement `IMultiTenant<Guid>` และ context สืบทอดจาก `AuditableDbContext<Guid, Guid?>` ธรรมดา (audit stamp, soft delete และการ dispatch domain event ยังคงทำงาน)
 
 ### interceptor
 

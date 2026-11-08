@@ -2,7 +2,7 @@
 
 [ภาษาไทย](README-TH.md)
 
-Provider-neutral EF Core persistence for auditing, soft-delete filtering, concurrency translation, domain-event dispatch, and unit-of-work registration.
+Provider-neutral EF Core persistence for audit stamping, soft deletion, concurrency translation, domain-event dispatch, and unit-of-work registration. Audit and soft-delete properties are shadow properties, so the domain model declares none of them.
 
 ## Install
 
@@ -41,11 +41,17 @@ public sealed class ApplicationDbContext(
     {
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(ApplicationDbContext).Assembly);
+
+        modelBuilder.Entity<Order>(builder =>
+        {
+            builder.HasAuditStamps();
+            builder.HasSoftDelete();
+        });
     }
 }
 ```
 
-`TUserId` is the trusted current-user identifier. `TActor` is the value stored in audit fields and may be nullable. `OnModelCreating` is sealed: it runs `ConfigureModel` first, then applies the soft-delete query filters, then `ConfigureAdditionalInfrastructureModel` (the hook the multitenancy context uses). Override `ValidateApplicationWrites` to inspect tracked changes before audit stamping and throw to abort the commit.
+`TUserId` is the trusted current-user identifier. `TActor` is the value stored in the actor columns and may be nullable. `OnModelCreating` is sealed: it runs `ConfigureModel` first, then adds the audit-stamp and soft-delete properties with the soft-delete query filters, then `ConfigureAdditionalInfrastructureModel` (the hook the multitenancy context uses). Override `ValidateApplicationWrites` to inspect tracked changes before audit stamping and throw to abort the commit.
 
 ## Register with any EF Core provider
 
@@ -63,12 +69,53 @@ services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>((_, options) =>
 
 `AddEntityFrameworkCoreUnitOfWork<TContext>` requires `IUnitOfWork` and registers the scoped context as that interface. Use `AddEntityFrameworkCoreContext<TContext>` for framework-owned contexts that should not become the application unit of work; it registers only the DbContext. In ASP.NET Core applications, `Athenex.Whimclean.Api.AspNetCore` supplies a claims-based `ICurrentUser<TUserId>` via `AddClaimsCurrentUser<TUserId>`.
 
+## Audit stamps and soft deletion
+
+Both are opt-in per entity type, configured in `ConfigureModel` with the extensions in `Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence`:
+
+| Call | Shadow properties added | Behavior |
+| --- | --- | --- |
+| `builder.HasAuditStamps()` | `CreatedAt` (`DateTimeOffset`), `CreatedBy` (`TActor`), `UpdatedAt` (`DateTimeOffset?`), `UpdatedBy` (nullable `TActor`) | Stamped on insert and update from `TimeProvider` and `IAuditActorResolver`. |
+| `builder.HasSoftDelete()` | `IsDeleted` (`bool`), `DeletedAt` (`DateTimeOffset?`), `DeletedBy` (nullable `TActor`) | `Remove` becomes a soft delete; the named `SoftDeleteFilter` hides deleted rows. |
+
+The property names are the constants in `AuditStampNames` and `SoftDeleteNames`; the annotations behind the calls are in `PersistenceAnnotations`. `CreatedBy` is required when `TActor` is a non-nullable value type such as `Guid` and nullable otherwise, including for every reference type such as `string`, because nullable reference annotations are not visible at runtime; the update and delete actors are always nullable. Owned types are skipped, and both calls must be made on the root entity type of an inheritance hierarchy, because EF Core allows query filters on root types only. When the entity already declares a CLR property with the same name and type, the context stamps that property instead of adding a shadow one, so an aggregate may expose `CreatedAt` when a business rule needs it.
+
+Read a shadow value in a query by name, and configure its column in `ConfigureModel` if the defaults do not fit:
+
+```csharp
+using Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+var newest = await dbContext.Orders
+    .OrderByDescending(order => EF.Property<DateTimeOffset>(order, AuditStampNames.CreatedAt))
+    .FirstAsync();
+
+builder.Property<DateTimeOffset>(AuditStampNames.CreatedAt).HasColumnName("created_at");
+```
+
+### Soft delete
+
+```csharp
+dbContext.Orders.Remove(order);          // kept as a row: IsDeleted = true, DeletedAt/DeletedBy stamped
+await dbContext.CommitAsync();
+
+var deleted = await dbContext.Orders.IncludeSoftDeleted().SingleAsync(o => o.Id == id);
+dbContext.Restore(deleted);              // IsDeleted = false; the save clears DeletedAt/DeletedBy
+await dbContext.CommitAsync();
+
+dbContext.HardDelete(order);             // deletes the row for real; reserve for authorized purges
+await dbContext.CommitAsync();
+
+var hidden = dbContext.IsSoftDeleted(order);
+```
+
+A soft delete on a type that also has audit stamps updates `UpdatedAt`/`UpdatedBy` as well. Because the row stays in the table, database cascades never fire: dependents that are tracked in the same context are soft-deleted (or deleted, for types without `HasSoftDelete()`) along with their principal, while dependents that were not loaded stay untouched and visible. Load the children you expect to disappear before calling `Remove`. `Restore` throws `InvalidOperationException` for entity types without `HasSoftDelete()`. To import rows that are already deleted, add them and set `dbContext.Entry(row).Property(SoftDeleteNames.IsDeleted).CurrentValue = true` before saving; the stamps are then written by that save.
+
 ## Persistence behavior
 
 - Every added, modified, or deleted record requires a current user; otherwise the save throws `CurrentUserRequiredException`. Background work should supply an explicit system user, for example `StaticCurrentUser<TUserId>` from `Athenex.Whimclean.Application.Context`.
-- `ICreateAuditable`, `IUpdateAuditable`, and `ISoftDelete` fields are populated from `TimeProvider` and `IAuditActorResolver`.
-- Root `ISoftDelete` entity types receive the named `SoftDeleteFilter` (`QueryFilterNames.SoftDelete`); owned types are skipped. Hard deletes of soft-deletable entities are rejected with `InvalidOperationException` instead of being converted into soft deletes; use the entity's soft-delete operation.
-- Delete stamps (`DeletedAt`/`DeletedBy`) are written when the `IsDeleted` flag flips on an update, and cleared on restore. Records added already deleted keep the values they were supplied with, so imports preserve historical truth.
+- Audit stamps and soft-delete marks are written to the properties described above from `TimeProvider` and `IAuditActorResolver`.
+- `Remove` of an entity type configured with `HasSoftDelete()` is converted into a soft delete at save time; only the soft-delete flag and the stamps count as modified. `HardDelete` bypasses the conversion.
 - `DbUpdateConcurrencyException` becomes `PersistenceConcurrencyException`.
 - Aggregate domain events are snapshotted before the save, cleared from the aggregates once the save succeeds, and then dispatched with `CancellationToken.None`. A failing handler throws `DomainEventDispatchException` with the undelivered events in `UndeliveredEvents`; do not retry the save.
 - Synchronous `SaveChanges` is intentionally unsupported. Use `SaveChangesAsync` or `IUnitOfWork.CommitAsync`.

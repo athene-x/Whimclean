@@ -4,7 +4,7 @@ namespace Athenex.Whimclean.Domain.Behaviors;
 /// Identifies a domain object that can be toggled between active and
 /// inactive by an operator.
 ///
-/// Unlike <see cref="ISoftDelete{TActor}" /> — which hides a record from
+/// Unlike a soft-deleted record — which the persistence layer hides from
 /// every default query while existing references keep resolving — an
 /// inactive record stays fully visible to operational callers (e.g. an
 /// admin panel, where it can be toggled back) and is excluded only from

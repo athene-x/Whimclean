@@ -124,7 +124,7 @@ The caller vouches for the tenant — `Begin` performs no access validation.
 Fully supported by the shipped packages. Tenant-owned entities implement `IMultiTenant<Guid>`, and the context derives from `MultiTenantDbContext`:
 
 ```csharp
-public sealed class Order : AggregateRoot<Guid>, IAuditable<Guid?>, IMultiTenant<Guid>
+public sealed class Order : AggregateRoot<Guid>, IMultiTenant<Guid>
 {
     public Guid TenantId { get; private set; }
     // ...
@@ -141,9 +141,17 @@ public sealed class ApplicationDbContext(
         options, timeProvider, currentUser, auditActorResolver,
         domainEventDispatcher, currentTenant)
 {
-    protected override void ConfigureModel(ModelBuilder modelBuilder) =>
+    protected override void ConfigureModel(ModelBuilder modelBuilder)
+    {
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(ApplicationDbContext).Assembly);
+
+        modelBuilder.Entity<Order>(order =>
+        {
+            order.HasAuditStamps();   // shadow CreatedAt/CreatedBy/UpdatedAt/UpdatedBy
+            order.HasSoftDelete();    // shadow IsDeleted/DeletedAt/DeletedBy + SoftDeleteFilter
+        });
+    }
 }
 ```
 
@@ -173,7 +181,7 @@ Migrations: a single `dotnet ef database update` — one schema serves every ten
 
 Not packaged yet; the agreed pattern is a **connection interceptor that sets `search_path`** on every opened connection. Do **not** use `HasDefaultSchema` per tenant — that would create one EF model cache entry per tenant.
 
-Because the schema isolates the data, entities do not implement `IMultiTenant<Guid>` and the context derives from plain `AuditableDbContext<Guid, Guid?>` (auditing, soft delete, and domain-event dispatch still apply).
+Because the schema isolates the data, entities do not implement `IMultiTenant<Guid>` and the context derives from plain `AuditableDbContext<Guid, Guid?>` (audit stamps, soft deletion, and domain-event dispatch still apply).
 
 ### The interceptor
 

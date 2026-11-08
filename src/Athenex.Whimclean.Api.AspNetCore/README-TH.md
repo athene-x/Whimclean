@@ -175,7 +175,7 @@ if (!result.IsValid)
 | `page` | หมายเลขหน้าเริ่มที่ 1 | `1` |
 | `size` | จำนวนรายการต่อหน้า | `10` |
 
-ไวยากรณ์ของ `sort` และ `filters` อธิบายไว้กับ `ListQueryParser` ใน `Athenex.Whimclean.Application`
+`ListQueryParser` ใน `Athenex.Whimclean.Api.AspNetCore.Queries` แปลงค่าเหล่านี้เป็น `ListQueryOptions` ของ `Athenex.Whimclean.Application` (`Parse`, `ParseSort`, `ParseFilters` throw `FormatException` เมื่อ input ผิด ส่วน `TryParseSort` และ `TryParseFilter` คืนข้อความข้อผิดพลาดที่ validator ใช้) ไวยากรณ์ของ `sort` และ `filters` อธิบายไว้ในหัวข้อ "ไวยากรณ์ของ list query" ของ README แพ็กเกจ Application
 
 ### การนิยาม request และ validator
 

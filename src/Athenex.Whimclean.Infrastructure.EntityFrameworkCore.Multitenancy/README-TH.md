@@ -85,7 +85,7 @@ services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>((_, options) =>
 - record ที่ tenant เป็นเจ้าของซึ่งถูกเพิ่ม แก้ไข หรือลบ ต้องมี tenant ปัจจุบัน มิฉะนั้นการบันทึกจะ throw `CurrentTenantRequiredException` การบันทึกที่ไม่แตะ entity ที่ tenant เป็นเจ้าของจะไม่ถูกตรวจสอบ
 - record ที่ `TenantId` ต่างจาก tenant ปัจจุบัน หรือที่ `TenantId` ถูกแก้ไขไม่ว่าในทิศทางใด จะทำให้เกิด `TenantAccessViolationException` การย้าย record ไปยัง tenant อื่นไม่ใช่การเขียนที่ถูกต้องในทุกกรณี
 - context ตรวจสอบ `TenantId` แต่ไม่เคยกำหนดหรือเขียนทับค่านี้
-- auditing, การบังคับให้มีผู้ใช้ปัจจุบัน, soft delete, การแปลง concurrency exception และพฤติกรรมของ domain event ยังคงสืบทอดมาจาก `AuditableDbContext`
+- audit stamp และ soft delete แบบ shadow property (เลือกใช้ด้วย `HasAuditStamps()`/`HasSoftDelete()` ใน `ConfigureModel`), การบังคับให้มีผู้ใช้ปัจจุบัน, การแปลง concurrency exception และพฤติกรรมของ domain event ยังคงสืบทอดมาจาก `AuditableDbContext`
 
 query สำหรับงานดูแลระบบที่ได้รับอนุญาตอย่างชัดเจนสามารถปิดเฉพาะ query filter ของ tenant ได้:
 

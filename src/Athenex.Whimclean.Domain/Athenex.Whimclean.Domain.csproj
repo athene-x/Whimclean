@@ -3,9 +3,9 @@
   <PropertyGroup>
     <Product>Athenex Whimclean Domain</Product>
     <Title>Athenex Whimclean Domain</Title>
-    <Description>Domain-driven design abstractions for entities, aggregate roots, domain events, auditing, soft deletion, and operation results.</Description>
-    <PackageTags>ddd;domain-driven-design;aggregate-root;domain-events;auditing;result</PackageTags>
-    <PackageReleaseNotes>Adds AuditableEntity and AuditableAggregateRoot base classes with the audit fields the EF infrastructure stamps, and TextNormalizer for whitespace and slug normalization.</PackageReleaseNotes>
+    <Description>Domain-driven design abstractions for entities, aggregate roots, domain events, activation state, text normalization, and operation results. Carries no persistence concerns.</Description>
+    <PackageTags>ddd;domain-driven-design;aggregate-root;domain-events;result;clean-architecture</PackageTags>
+    <PackageReleaseNotes>2.0.0: removes IAuditable, ICreateAuditable, IUpdateAuditable, ISoftDelete, AuditableEntity and AuditableAggregateRoot. Audit stamps and soft deletion are now shadow properties maintained by the EF Core package (HasAuditStamps, HasSoftDelete), so the domain model no longer declares persistence fields. See docs/upgrading-to-2.0.md.</PackageReleaseNotes>
   </PropertyGroup>
 
 </Project>

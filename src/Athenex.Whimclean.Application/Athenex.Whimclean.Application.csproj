@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Application</Title>
     <Description>Application-layer abstractions for request context, email, pagination, persistence, and validated list queries.</Description>
     <PackageTags>application-layer;clean-architecture;email;pagination;queries;unit-of-work</PackageTags>
-    <PackageReleaseNotes>Adds ListQueryParser for the field:operator:value filter and -field sort syntax, EnumFilter, OffsetPagedResult.Map, and ICurrentUserInitializer for hosts that set the current user outside a request.</PackageReleaseNotes>
+    <PackageReleaseNotes>2.0.0: ListQueryParser moves to Athenex.Whimclean.Api.AspNetCore.Queries, where the query string is received; ListQueryOptions, FilterTerm, SortTerm and EnumFilter stay here. See docs/upgrading-to-2.0.md.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

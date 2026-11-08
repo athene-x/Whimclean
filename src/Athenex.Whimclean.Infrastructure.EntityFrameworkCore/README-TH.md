@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-ชั้น persistence ของ EF Core แบบไม่ผูกกับ provider สำหรับการทำ auditing, การกรอง soft delete, การแปลง concurrency exception, การ dispatch domain event และการลงทะเบียน unit of work
+ชั้น persistence ของ EF Core แบบไม่ผูกกับ provider สำหรับ audit stamp และ soft delete แบบ shadow property, การแปลง concurrency exception, การ dispatch domain event และการลงทะเบียน unit of work
 
 ## การติดตั้ง
 
@@ -41,11 +41,66 @@ public sealed class ApplicationDbContext(
     {
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(ApplicationDbContext).Assembly);
+
+        modelBuilder.Entity<Order>(builder =>
+        {
+            builder.HasAuditStamps();
+            builder.HasSoftDelete();
+        });
     }
 }
 ```
 
-`TUserId` คือตัวระบุผู้ใช้ปัจจุบันที่เชื่อถือได้ `TActor` คือค่าที่เก็บในฟิลด์ audit และอาจเป็น nullable ได้ `OnModelCreating` ถูก seal ไว้ โดยจะเรียก `ConfigureModel` ก่อน จากนั้นติดตั้ง query filter สำหรับ soft delete แล้วจึงเรียก `ConfigureAdditionalInfrastructureModel` (จุดต่อขยายที่ context ของ multitenancy ใช้) override `ValidateApplicationWrites` เพื่อตรวจสอบการเปลี่ยนแปลงที่ถูกติดตามก่อนการประทับ audit และ throw เพื่อยกเลิกการ commit
+`TUserId` คือตัวระบุผู้ใช้ปัจจุบันที่เชื่อถือได้ `TActor` คือค่าที่เก็บในคอลัมน์ actor ของ audit stamp และอาจเป็น nullable ได้ `OnModelCreating` ถูก seal ไว้ โดยจะเรียก `ConfigureModel` ก่อน จากนั้นเพิ่ม shadow property ของ audit stamp และ soft delete พร้อม query filter ให้ entity type ที่เลือกเข้าร่วม แล้วจึงเรียก `ConfigureAdditionalInfrastructureModel` (จุดต่อขยายที่ context ของ multitenancy ใช้) override `ValidateApplicationWrites` เพื่อตรวจสอบการเปลี่ยนแปลงที่ถูกติดตามก่อนการประทับค่าและ throw เพื่อยกเลิกการ commit
+
+## audit stamp และ soft delete
+
+โมเดล domain ไม่ประกาศฟิลด์เหล่านี้ entity type เลือกเข้าร่วมใน `ConfigureModel` ด้วย extension บน `EntityTypeBuilder` จาก `Athenex.Whimclean.Infrastructure.EntityFrameworkCore.Persistence` แล้ว context เพิ่ม shadow property ด้วย `TActor` ของตัวเอง:
+
+| extension | shadow property | ชนิด |
+| --- | --- | --- |
+| `HasAuditStamps()` | `CreatedAt` | `DateTimeOffset` |
+| | `CreatedBy` | `TActor`; required เมื่อ `TActor` เป็น value type ที่ไม่ nullable เช่น `Guid` นอกนั้น nullable (รวม reference type ทุกชนิดเช่น `string`) |
+| | `UpdatedAt` | `DateTimeOffset?` |
+| | `UpdatedBy` | `TActor` แบบ nullable |
+| `HasSoftDelete()` | `IsDeleted` | `bool` |
+| | `DeletedAt` | `DateTimeOffset?` |
+| | `DeletedBy` | `TActor` แบบ nullable |
+
+ชื่อ property เป็นค่าคงที่ใน `AuditStampNames` และ `SoftDeleteNames` ส่วน annotation ที่บันทึกการเลือกเข้าร่วมอยู่ใน `PersistenceAnnotations` (`Whimclean:AuditStamps`, `Whimclean:SoftDelete`) อ่านค่าใน query ด้วย `EF.Property` และตั้งชื่อคอลัมน์ได้ตามปกติ เพราะ context ใช้ property ที่มีอยู่แล้วซ้ำแทนการเพิ่มใหม่:
+
+```csharp
+builder.Property<DateTimeOffset>(AuditStampNames.CreatedAt).HasColumnName("created_at");
+
+var recent = await dbContext.Orders
+    .OrderByDescending(order => EF.Property<DateTimeOffset>(order, AuditStampNames.CreatedAt))
+    .ToListAsync(cancellationToken);
+```
+
+หาก entity ประกาศ CLR property ชื่อและชนิดเดียวกันเอง (เช่น domain ต้องใช้ `CreatedAt` ในกฎของตัวเอง) context จะประทับค่าลง property นั้นแทนการเพิ่ม shadow property ทั้งสอง extension ต้องเรียกบน root entity type ของลำดับชั้นการสืบทอด เพราะ EF Core ยอมให้ตั้ง query filter ได้เฉพาะ root type
+
+### soft delete
+
+การ `Remove` entity ของ type ที่ `HasSoftDelete()` ไม่ลบแถว การบันทึกแปลงการลบนั้นเป็นการตั้ง `IsDeleted` พร้อมประทับ `DeletedAt`/`DeletedBy` (และ `UpdatedAt`/`UpdatedBy` เมื่อ type นั้นมี audit stamp ด้วย) จากนั้น query filter `SoftDeleteFilter` ซ่อนแถวนั้นจาก query ทั่วไป
+
+```csharp
+var order = await dbContext.Orders.SingleAsync(order => order.Id == id, cancellationToken);
+dbContext.Orders.Remove(order);              // soft delete เมื่อบันทึก
+await dbContext.CommitAsync(cancellationToken);
+
+var deleted = await dbContext.Orders
+    .IncludeSoftDeleted()                    // ต้องเปิด filter ก่อนจึงเห็นแถวที่ลบ
+    .SingleAsync(order => order.Id == id, cancellationToken);
+dbContext.Restore(deleted);                  // ล้าง IsDeleted; การบันทึกล้าง DeletedAt/DeletedBy ให้
+await dbContext.CommitAsync(cancellationToken);
+
+dbContext.HardDelete(deleted);               // ลบแถวจริง สำหรับงานล้างข้อมูลที่ได้รับอนุญาต
+await dbContext.CommitAsync(cancellationToken);
+```
+
+เนื่องจากแถวยังอยู่ในตาราง cascade ของฐานข้อมูลจึงไม่ทำงาน: entity ลูกที่ถูกติดตามอยู่ใน context เดียวกันจะถูก soft delete ตาม (หรือลบจริงถ้า type นั้นไม่ได้ `HasSoftDelete()`) ส่วนลูกที่ไม่ได้โหลดมาจะไม่ถูกแตะและยังมองเห็นอยู่ ให้โหลดลูกที่ต้องการให้หายไปด้วยก่อนเรียก `Remove`
+
+`IsSoftDeleted(entity)` อ่าน flag ของ entity ที่ถูกติดตาม `Restore` throw `InvalidOperationException` เมื่อ type นั้นไม่ได้ `HasSoftDelete()` การนำเข้าแถวที่ถูกลบไปแล้วในอดีตทำได้โดยตั้ง flag หลัง `Add`: `dbContext.Entry(order).Property(SoftDeleteNames.IsDeleted).CurrentValue = true;` ค่าที่ระบุมากับ record ที่เพิ่มจะคงไว้ตามเดิม
 
 ## ลงทะเบียนกับ EF Core provider ใดก็ได้
 
@@ -66,8 +121,8 @@ services.AddEntityFrameworkCoreUnitOfWork<ApplicationDbContext>((_, options) =>
 ## พฤติกรรมของ persistence
 
 - ทุก record ที่ถูกเพิ่ม แก้ไข หรือลบ ต้องมีผู้ใช้ปัจจุบัน มิฉะนั้นการบันทึกจะ throw `CurrentUserRequiredException` งานเบื้องหลังควรระบุผู้ใช้ระบบอย่างชัดเจน เช่น `StaticCurrentUser<TUserId>` จาก `Athenex.Whimclean.Application.Context`
-- ฟิลด์ของ `ICreateAuditable`, `IUpdateAuditable` และ `ISoftDelete` ถูกเติมค่าจาก `TimeProvider` และ `IAuditActorResolver`
-- entity type ระดับ root ที่เป็น `ISoftDelete` จะได้รับ query filter ชื่อ `SoftDeleteFilter` (`QueryFilterNames.SoftDelete`) ส่วน owned type จะถูกข้าม การลบจริง (hard delete) ของ entity ที่รองรับ soft delete จะถูกปฏิเสธด้วย `InvalidOperationException` แทนที่จะถูกแปลงเป็น soft delete ให้ใช้ operation สำหรับ soft delete ของ entity แทน
+- entity type ที่ `HasAuditStamps()` ได้ `CreatedAt`/`CreatedBy` ตอนเพิ่ม และ `UpdatedAt`/`UpdatedBy` ตอนแก้ไข จาก `TimeProvider` และ `IAuditActorResolver`
+- entity type ที่ `HasSoftDelete()` และไม่ใช่ owned type ได้ query filter ชื่อ `SoftDeleteFilter` (`QueryFilterNames.SoftDelete`) `Remove` ถูกแปลงเป็น soft delete ตอนบันทึก `HardDelete` ลบแถวจริง และ `Restore` กู้คืน
 - ค่าประทับการลบ (`DeletedAt`/`DeletedBy`) จะถูกเขียนเมื่อ flag `IsDeleted` เปลี่ยนค่าระหว่างการแก้ไข และถูกล้างเมื่อกู้คืน record ที่ถูกเพิ่มในสถานะลบแล้วจะคงค่าที่ระบุมา ดังนั้นการนำเข้าข้อมูลจึงรักษาความจริงในอดีตไว้ได้
 - `DbUpdateConcurrencyException` จะกลายเป็น `PersistenceConcurrencyException`
 - domain event ของ aggregate จะถูก snapshot ก่อนการบันทึก ถูกล้างออกจาก aggregate เมื่อบันทึกสำเร็จ แล้วจึง dispatch ด้วย `CancellationToken.None` หาก handler ล้มเหลวจะ throw `DomainEventDispatchException` พร้อม event ที่ยังไม่ถูกส่งใน `UndeliveredEvents` ห้ามบันทึกซ้ำ
