@@ -1,0 +1,66 @@
+name: release
+
+# Publishes every package to nuget.org when a version tag (v*) is pushed.
+# Authenticates through nuget.org Trusted Publishing (GitHub OIDC), so no
+# long-lived API key is stored. Requires:
+#   - a Trusted Publishing policy on nuget.org for owner AtheneX,
+#     repository athene-x/Whimclean, workflow file release.yml;
+#   - the repository secret NUGET_USER: the nuget.org profile name of the
+#     account that created the policy (not an email address).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Check tag matches package version
+        run: |
+          version=$(dotnet msbuild src/Athenex.Whimclean.Domain/Athenex.Whimclean.Domain.csproj -getProperty:Version)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match <Version>$version</Version> in Directory.Build.props"
+            exit 1
+          fi
+
+      - name: Build
+        run: dotnet build Athenex.Whimclean.slnx -c Release
+
+      - name: Test
+        run: dotnet test Athenex.Whimclean.slnx -c Release --no-build
+
+      - name: Pack
+        run: dotnet pack Athenex.Whimclean.slnx -c Release --no-build
+
+      # The temporary key is valid for one hour, so request it right before the push.
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to nuget.org
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
