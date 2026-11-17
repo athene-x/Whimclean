@@ -97,7 +97,7 @@ public sealed class MediatorDomainEventDispatcher(IMediator mediator)
 services.AddScoped<IDomainEventDispatcher, MediatorDomainEventDispatcher>();
 ```
 
-For the source-generated `martinothamar/Mediator`, the `Athenex.Whimclean.Mediator` package already ships this bridge as `AddMediatorDomainEventDispatcher()`; see [its README](../Athenex.Whimclean.Mediator/README.md).
+For the source-generated `martinothamar/Mediator`, the `Athenex.Whimclean.Mediator` package already ships this bridge as `AddMediatorDomainEventDispatcher()`; see [its README](https://github.com/athene-x/Whimclean/blob/main/src/Athenex.Whimclean.Mediator/README.md).
 
 This package deliberately does not select MediatR, EF Core, a database provider, Identity, or multitenancy.
 

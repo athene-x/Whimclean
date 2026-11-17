@@ -31,6 +31,7 @@ Whimclean คือชุด building block สำหรับ .NET 10 สำห
 - [multitenancy](#multitenancy)
 - [API host](#api-host)
 - [อ่านเพิ่มเติม](#อ่านเพิ่มเติม)
+- [สัญญาอนุญาต](#สัญญาอนุญาต)
 
 ## แพ็กเกจ
 
@@ -130,29 +131,7 @@ Identity.Keycloak
 
 ### feed ของแพ็กเกจ
 
-แพ็กเกจเผยแพร่บน NuGet feed ของ athene-x ใน [GitHub Packages](https://github.com/orgs/athene-x/packages) ไม่ใช่ nuget.org การใช้งานต้องเป็นสมาชิกขององค์กร athene-x
-
-1. สร้าง [personal access token (classic)](https://github.com/settings/tokens) ที่มี scope `read:packages`
-2. ลงทะเบียน feed หนึ่งครั้งต่อเครื่อง:
-
-   ```shell
-   dotnet nuget add source \
-     --username YOUR_GITHUB_USERNAME \
-     --password YOUR_GITHUB_TOKEN \
-     --store-password-in-clear-text \
-     --name github \
-     "https://nuget.pkg.github.com/athene-x/index.json"
-   ```
-
-3. หาก repository ที่ใช้งานมี `packageSourceMapping` ใน `nuget.config` การ restore จะพิจารณาเฉพาะ source ที่ map ไว้ ให้ map prefix ของแพ็กเกจด้วย:
-
-   ```xml
-   <packageSourceMapping>
-     <packageSource key="github">
-       <package pattern="Athenex.Whimclean.*" />
-     </packageSource>
-   </packageSourceMapping>
-   ```
+แพ็กเกจเผยแพร่บน [nuget.org](https://www.nuget.org/profiles/AtheneX) ภายใต้องค์กร AtheneX จึงไม่ต้องตั้งค่า feed เพิ่มเติม
 
 ### การเพิ่มแพ็กเกจ
 
@@ -835,3 +814,7 @@ app.MapHealthEndpoints();
 - [คู่มือตั้งค่า multitenancy](docs/multitenancy-setup-TH.md): การแยกข้อมูลเชิงตรรกะ, schema ต่อ tenant และฐานข้อมูลต่อ tenant
 - [การอัปเกรดเป็น 2.0.0](docs/upgrading-to-2.0-TH.md): การย้าย audit stamp และ soft delete จาก Domain ไปเป็น shadow property ของ EF และที่อยู่ใหม่ของ `ListQueryParser`
 - [การอัปเกรดเป็น 1.3.0](docs/upgrading-to-1.3-TH.md): การแทนที่ helper ที่แอปพลิเคชันเขียนเองด้วยแพ็กเกจ
+
+## สัญญาอนุญาต
+
+[MIT](LICENSE)

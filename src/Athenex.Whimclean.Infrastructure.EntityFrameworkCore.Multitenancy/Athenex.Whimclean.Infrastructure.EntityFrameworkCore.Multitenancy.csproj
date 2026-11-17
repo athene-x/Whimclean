@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Entity Framework Core Multitenancy</Title>
     <Description>Optional provider-neutral EF Core multitenancy enforcement with fail-closed query filters and write validation.</Description>
     <PackageTags>entity-framework-core;multitenancy;tenant;query-filter;data-isolation</PackageTags>
-    <PackageReleaseNotes>Adds optional provider-neutral EF Core tenant query filtering and fail-closed write validation.</PackageReleaseNotes>
+    <PackageReleaseNotes>2.0.0: first nuget.org release. Provider-neutral EF Core tenant query filters and fail-closed write validation.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

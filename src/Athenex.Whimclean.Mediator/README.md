@@ -83,7 +83,7 @@ public sealed class OrderPlacedHandler(IEmailSender emailSender)
 }
 ```
 
-The source generator discovers `DomainEventHandler<TEvent>` subclasses like any other `INotificationHandler` and registers them. Events are dispatched after a successful commit, exactly like the built-in pipeline (see the [`Athenex.Whimclean.Infrastructure` README](../Athenex.Whimclean.Infrastructure/README.md)). An event with no matching handler is a no-op: the dispatcher swallows the mediator's `MissingMessageHandlerException`. Handler ordering and error aggregation follow the mediator's configured notification publisher; with the default publisher, handlers run sequentially and the first failure propagates.
+The source generator discovers `DomainEventHandler<TEvent>` subclasses like any other `INotificationHandler` and registers them. Events are dispatched after a successful commit, exactly like the built-in pipeline (see the [`Athenex.Whimclean.Infrastructure` README](https://github.com/athene-x/Whimclean/blob/main/src/Athenex.Whimclean.Infrastructure/README.md)). An event with no matching handler is a no-op: the dispatcher swallows the mediator's `MissingMessageHandlerException`. Handler ordering and error aggregation follow the mediator's configured notification publisher; with the default publisher, handlers run sequentially and the first failure propagates.
 
 ### Why the notification is not generic
 

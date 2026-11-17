@@ -13,6 +13,7 @@
     <Company>Athenex</Company>
     <Copyright>Copyright © Athenex 2026</Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageProjectUrl>https://github.com/athene-x/Whimclean</PackageProjectUrl>
     <RepositoryUrl>https://github.com/athene-x/Whimclean.git</RepositoryUrl>
@@ -20,15 +21,22 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts</PackageOutputPath>
 
-    <!-- Private feed (GitHub Packages) has no symbol server; embed PDBs
-         in the assemblies instead of shipping .snupkg packages. -->
+    <!-- Embed PDBs in the assemblies so debugging and SourceLink work
+         without a separate .snupkg symbol package. -->
     <DebugType>embedded</DebugType>
     <EnablePackageValidation>true</EnablePackageValidation>
     <!-- 2.0 removes the Domain audit and soft-delete contracts on purpose
-         (see docs/upgrading-to-2.0.md); baseline validation against 1.x
-         is re-enabled from the first 2.x patch release. -->
+         (see docs/upgrading-to-2.0.md). 2.0.0 is also the first release on
+         nuget.org, so from the first 2.x patch release set
+         PackageValidationBaselineVersion to 2.0.0. -->
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Release builds map local source paths to /_/ so packages built on a
+       developer machine are deterministic, the same as CI builds. -->
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' and '$(Configuration)' == 'Release'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">

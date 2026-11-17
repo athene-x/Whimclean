@@ -30,6 +30,7 @@ Three decisions shape the library:
 - [Multitenancy](#multitenancy)
 - [API host](#api-host)
 - [Further reading](#further-reading)
+- [License](#license)
 
 ## Packages
 
@@ -129,29 +130,7 @@ Reference only the top-level packages an application uses; NuGet supplies their 
 
 ### Package feed
 
-The packages are published to the athene-x [GitHub Packages](https://github.com/orgs/athene-x/packages) NuGet feed, not to nuget.org. Consuming them requires membership in the athene-x organization.
-
-1. Create a [personal access token (classic)](https://github.com/settings/tokens) with the `read:packages` scope.
-2. Register the feed once per machine:
-
-   ```shell
-   dotnet nuget add source \
-     --username YOUR_GITHUB_USERNAME \
-     --password YOUR_GITHUB_TOKEN \
-     --store-password-in-clear-text \
-     --name github \
-     "https://nuget.pkg.github.com/athene-x/index.json"
-   ```
-
-3. If the consuming repository uses `packageSourceMapping` in its `nuget.config`, restore considers only mapped sources. Map the package prefix as well:
-
-   ```xml
-   <packageSourceMapping>
-     <packageSource key="github">
-       <package pattern="Athenex.Whimclean.*" />
-     </packageSource>
-   </packageSourceMapping>
-   ```
+The packages are published to [nuget.org](https://www.nuget.org/profiles/AtheneX) under the AtheneX organization, so no extra feed configuration is needed.
 
 ### Adding packages
 
@@ -836,3 +815,7 @@ app.MapHealthEndpoints();
 - [Multitenancy setup guide](docs/multitenancy-setup.md): logical, schema-per-tenant and database-per-tenant isolation.
 - [Upgrading to 2.0.0](docs/upgrading-to-2.0.md): moving audit stamps and soft deletion out of the domain model, and the `ListQueryParser` move.
 - [Upgrading to 1.3.0](docs/upgrading-to-1.3.md): replacing application-written helpers with the packages.
+
+## License
+
+[MIT](LICENSE)

@@ -5,11 +5,7 @@
     <Title>Athenex Whimclean Mediator</Title>
     <Description>Optional Mediator (martinothamar/Mediator) integration: a command unit-of-work pipeline behavior and domain-event delivery as mediator notifications.</Description>
     <PackageTags>mediator;cqrs;pipeline-behavior;domain-events;unit-of-work;notifications</PackageTags>
-    <PackageReleaseNotes>Breaking: DomainEventNotification is no longer generic and handlers derive from DomainEventHandler&lt;TEvent&gt;. The previous open-generic notification broke the Mediator source generator in every consuming project.</PackageReleaseNotes>
-
-    <!-- This package first shipped in 1.1.0, so it validates against that
-         instead of the library-wide 1.0.0 baseline. -->
-    <PackageValidationBaselineVersion>1.1.0</PackageValidationBaselineVersion>
+    <PackageReleaseNotes>2.0.0: first nuget.org release. Commits the unit of work after each command through a pipeline behavior and delivers domain events as the non-generic DomainEventNotification, handled by DomainEventHandler&lt;TEvent&gt; subclasses.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

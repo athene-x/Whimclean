@@ -5,7 +5,7 @@
     <Title>Athenex Whimclean Entity Framework Core</Title>
     <Description>Provider-neutral EF Core infrastructure for Whimclean applications, including required current-user writes, shadow-property audit stamps and soft deletion (HasAuditStamps, HasSoftDelete), concurrency handling, unit-of-work registration, list query helpers, and domain-event dispatch.</Description>
     <PackageTags>entity-framework-core;unit-of-work;auditing;current-user;soft-delete;concurrency;domain-events</PackageTags>
-    <PackageReleaseNotes>2.0.0: audit stamps and soft deletion move from domain interfaces to shadow properties. Opt entity types in with HasAuditStamps() and HasSoftDelete() in ConfigureModel; Remove() soft-deletes configured types, HardDelete() deletes the row, Restore() reverses a soft delete, IsSoftDeleted() reads the flag. Property names are in AuditStampNames and SoftDeleteNames. See docs/upgrading-to-2.0.md.</PackageReleaseNotes>
+    <PackageReleaseNotes>2.0.0: audit stamps and soft deletion move from domain interfaces to shadow properties. Opt entity types in with HasAuditStamps() and HasSoftDelete() in ConfigureModel; Remove() soft-deletes configured types, HardDelete() deletes the row, Restore() reverses a soft delete, IsSoftDeleted() reads the flag. Property names are in AuditStampNames and SoftDeleteNames. See https://github.com/athene-x/Whimclean/blob/main/docs/upgrading-to-2.0.md.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
